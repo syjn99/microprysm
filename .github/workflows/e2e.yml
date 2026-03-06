@@ -20,12 +20,21 @@ jobs:
 
       - run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - uses: google-github-actions/auth@v2
+      - id: gcp-auth
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: ">= 390.0.0"
 
       - name: Run E2E minimal tests
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
         run: |
           bazel test \
             --config=remote-cache \
