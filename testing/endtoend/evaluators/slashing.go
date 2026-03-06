@@ -117,27 +117,19 @@ func validatorsLoseBalance(_ *e2eTypes.EvaluationContext, nodeURLs ...string) er
 	return nil
 }
 
-func insertDoubleAttestationIntoPool(ec *e2eTypes.EvaluationContext, nodeURLs ...string) error {
-	// The doubleAttestationHelper still uses gRPC internally (migrated in Task 3.3).
-	conn := ec.GRPCConns[0]
-	valClient := eth.NewBeaconNodeValidatorClient(conn)
-	beaconClient := eth.NewBeaconChainClient(conn)
-
-	ctx := context.Background()
-
-	h := doubleAttestationHelper{
-		valClient:    valClient,
-		beaconClient: beaconClient,
-	}
-	err := h.setup(ctx)
-	if err != nil {
-		return errors.Wrap(err, "could not setup doubleAttestationHelper")
-	}
-
+func insertDoubleAttestationIntoPool(_ *e2eTypes.EvaluationContext, nodeURLs ...string) error {
 	client0, err := helpers.NewBeaconNodeClient(nodeURLs[0])
 	if err != nil {
 		return err
 	}
+
+	ctx := context.Background()
+
+	h := doubleAttestationHelper{client: client0}
+	if err := h.setup(ctx); err != nil {
+		return errors.Wrap(err, "could not setup doubleAttestationHelper")
+	}
+
 	client1, err := helpers.NewBeaconNodeClient(nodeURLs[1])
 	if err != nil {
 		return err

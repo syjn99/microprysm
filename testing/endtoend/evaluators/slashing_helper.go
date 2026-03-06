@@ -3,34 +3,37 @@ package evaluators
 import (
 	"context"
 	"crypto/rand"
+	"fmt"
+	"sort"
+	"strconv"
 
 	"github.com/OffchainLabs/go-bitfield"
+	"github.com/OffchainLabs/prysm/v7/api/server/structs"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/core/signing"
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/crypto/bls"
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	"github.com/OffchainLabs/prysm/v7/testing/util"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type doubleAttestationHelper struct {
-	valClient    eth.BeaconNodeValidatorClient
-	beaconClient eth.BeaconChainClient
-	privKeys     []bls.SecretKey
-	pubKeys      [][]byte
-	domainResp   *eth.DomainResponse
-	attData      *eth.AttestationData
+	client   *helpers.BeaconNodeClient
+	privKeys []bls.SecretKey
+	pubKeys  [][]byte
+	domain   []byte
+	attData  *eth.AttestationData
 
 	committee []primitives.ValidatorIndex
 }
 
-// Initializes helper with details needed to make a double attestation for testing purposes
-// Populates the committee of that is responsible for the
+// setup initializes the helper with details needed to make a double attestation.
 func (h *doubleAttestationHelper) setup(ctx context.Context) error {
-	chainHead, err := h.beaconClient.GetChainHead(ctx, &emptypb.Empty{})
+	chainHead, err := h.client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "could not get chain head")
 	}
@@ -44,62 +47,152 @@ func (h *doubleAttestationHelper) setup(ctx context.Context) error {
 		pubKeys[i] = priv.PublicKey().Marshal()
 	}
 
-	duties, err := h.valClient.GetDuties(ctx, &eth.DutiesRequest{
-		Epoch:      chainHead.HeadEpoch,
-		PublicKeys: pubKeys,
-	})
+	// Build validator index list for attester duties query.
+	valCount := params.BeaconConfig().MinGenesisActiveValidatorCount
+	indices := make([]string, valCount)
+	for i := range valCount {
+		indices[i] = fmt.Sprintf("%d", i)
+	}
 
+	dutiesResp, err := h.client.GetAttesterDuties(ctx, chainHead.HeadEpoch, indices)
 	if err != nil {
-		return errors.Wrap(err, "could not get duties")
+		return errors.Wrap(err, "could not get attester duties")
 	}
 
+	// Find the first committee attesting at the head slot and reconstruct it.
+	headSlotStr := fmt.Sprintf("%d", chainHead.HeadSlot)
 	var committeeIndex primitives.CommitteeIndex
-	var committee []primitives.ValidatorIndex
-	for _, duty := range duties.CurrentEpochDuties {
-		if duty.AttesterSlot == chainHead.HeadSlot {
-			committeeIndex = duty.CommitteeIndex
-			committee = duty.Committee
-			break
-		}
+	var committeeLength uint64
+
+	// Collect all duties for the target slot and first matching committee.
+	type posEntry struct {
+		validatorIndex primitives.ValidatorIndex
+		position       uint64
 	}
-	attDataReq := &eth.AttestationDataRequest{
-		CommitteeIndex: committeeIndex,
-		Slot:           chainHead.HeadSlot,
+	var entries []posEntry
+	found := false
+
+	for _, duty := range dutiesResp.Data {
+		if duty.Slot != headSlotStr {
+			continue
+		}
+		if !found {
+			ci, err := strconv.ParseUint(duty.CommitteeIndex, 10, 64)
+			if err != nil {
+				return errors.Wrap(err, "could not parse committee index")
+			}
+			committeeIndex = primitives.CommitteeIndex(ci)
+			committeeLength, err = strconv.ParseUint(duty.CommitteeLength, 10, 64)
+			if err != nil {
+				return errors.Wrap(err, "could not parse committee length")
+			}
+			found = true
+		}
+		// Only include duties for the same committee.
+		ci, _ := strconv.ParseUint(duty.CommitteeIndex, 10, 64)
+		if primitives.CommitteeIndex(ci) != committeeIndex {
+			continue
+		}
+		vi, err := strconv.ParseUint(duty.ValidatorIndex, 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "could not parse validator index")
+		}
+		pos, err := strconv.ParseUint(duty.ValidatorCommitteeIndex, 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "could not parse validator committee index")
+		}
+		entries = append(entries, posEntry{
+			validatorIndex: primitives.ValidatorIndex(vi),
+			position:       pos,
+		})
 	}
 
-	attData, err := h.valClient.GetAttestationData(ctx, attDataReq)
+	// Sort by position and build the committee array.
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].position < entries[j].position
+	})
+	committee := make([]primitives.ValidatorIndex, committeeLength)
+	for _, e := range entries {
+		committee[e.position] = e.validatorIndex
+	}
+
+	attDataResp, err := h.client.GetAttestationData(ctx, chainHead.HeadSlot, committeeIndex)
 	if err != nil {
 		return err
 	}
 
-	req := &eth.DomainRequest{
-		Epoch:  chainHead.HeadEpoch,
-		Domain: params.BeaconConfig().DomainBeaconAttester[:],
+	// Convert REST attestation data to proto for signing.
+	attData, err := attestationDataFromREST(attDataResp.Data)
+	if err != nil {
+		return errors.Wrap(err, "could not convert attestation data")
 	}
 
-	domainResp, err := h.valClient.DomainData(ctx, req)
+	domain, err := helpers.ComputeDomainData(chainHead.HeadEpoch, params.BeaconConfig().DomainBeaconAttester)
 	if err != nil {
 		return errors.Wrap(err, "could not get domain data")
 	}
 
 	h.privKeys = privKeys
 	h.pubKeys = pubKeys
-	h.domainResp = domainResp
+	h.domain = domain
 	h.committee = committee
 	h.attData = attData
 
 	return nil
 }
 
-// Returns the validatorIndex at index idx of the fetched committee in setup()
+// attestationDataFromREST converts REST attestation data JSON to proto.
+func attestationDataFromREST(data *structs.AttestationData) (*eth.AttestationData, error) {
+	slot, err := strconv.ParseUint(data.Slot, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse slot")
+	}
+	ci, err := strconv.ParseUint(data.CommitteeIndex, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse committee index")
+	}
+	blockRoot, err := hexutil.Decode(data.BeaconBlockRoot)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode beacon block root")
+	}
+	sourceEpoch, err := strconv.ParseUint(data.Source.Epoch, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse source epoch")
+	}
+	sourceRoot, err := hexutil.Decode(data.Source.Root)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode source root")
+	}
+	targetEpoch, err := strconv.ParseUint(data.Target.Epoch, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse target epoch")
+	}
+	targetRoot, err := hexutil.Decode(data.Target.Root)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode target root")
+	}
+	return &eth.AttestationData{
+		Slot:            primitives.Slot(slot),
+		CommitteeIndex:  primitives.CommitteeIndex(ci),
+		BeaconBlockRoot: blockRoot,
+		Source: &eth.Checkpoint{
+			Epoch: primitives.Epoch(sourceEpoch),
+			Root:  sourceRoot,
+		},
+		Target: &eth.Checkpoint{
+			Epoch: primitives.Epoch(targetEpoch),
+			Root:  targetRoot,
+		},
+	}, nil
+}
+
+// validatorIndexAtCommitteeIndex returns the validatorIndex at position idx in the committee.
 func (h *doubleAttestationHelper) validatorIndexAtCommitteeIndex(idx uint64) primitives.ValidatorIndex {
 	return h.committee[idx]
 }
 
-// Returns a attestation was previously submitted, at the previous slot, modifying it so that it is signed
-// by the validator indicated by idx. idx represents the index in the committee of the attestation.
-// The block root value is random, which allows this to be seen by P2P networks as
-// new, unique blocks.
+// getSlashableAttestation returns an attestation with a random block root, signed by the
+// validator at position idx in the committee. The random block root ensures P2P uniqueness.
 func (h *doubleAttestationHelper) getSlashableAttestation(idx uint64) (*eth.Attestation, error) {
 	// msg must be unique so they are not filtered by P2P
 	randVal := make([]byte, 4)
@@ -110,9 +203,9 @@ func (h *doubleAttestationHelper) getSlashableAttestation(idx uint64) (*eth.Atte
 	blockRoot := bytesutil.ToBytes32(append(randVal, []byte("muahahahaha evil validator")...))
 	h.attData.BeaconBlockRoot = blockRoot[:]
 
-	signingRoot, err := signing.ComputeSigningRoot(h.attData, h.domainResp.SignatureDomain)
+	signingRoot, err := signing.ComputeSigningRoot(h.attData, h.domain)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get chain head")
+		return nil, errors.Wrap(err, "could not compute signing root")
 	}
 
 	valIdx := h.validatorIndexAtCommitteeIndex(idx)
