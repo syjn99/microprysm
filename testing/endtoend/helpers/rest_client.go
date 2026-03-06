@@ -13,8 +13,11 @@ import (
 
 	"github.com/OffchainLabs/prysm/v7/api/client"
 	"github.com/OffchainLabs/prysm/v7/api/server/structs"
+	"github.com/OffchainLabs/prysm/v7/beacon-chain/core/signing"
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
+	"github.com/OffchainLabs/prysm/v7/genesis"
+	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/pkg/errors"
 )
 
@@ -332,4 +335,29 @@ func (b *BeaconNodeClient) postAndRead(ctx context.Context, endpoint string, jso
 		return nil, errors.Wrap(err, "failed to read response body")
 	}
 	return body, nil
+}
+
+// ComputeDomainData computes the BLS signature domain for a given domain type
+// and epoch entirely client-side, without requiring a gRPC call. This
+// replicates the server-side DomainData RPC logic, including the special
+// handling for voluntary exits post-Deneb (which must use the Capella fork
+// version per EIP-7044).
+func ComputeDomainData(epoch primitives.Epoch, domainType [4]byte) ([]byte, error) {
+	cfg := params.BeaconConfig()
+
+	var fork *eth.Fork
+	if bytes.Equal(domainType[:], cfg.DomainVoluntaryExit[:]) && epoch >= cfg.DenebForkEpoch {
+		// EIP-7044: voluntary exits are signed with the Capella fork version
+		// regardless of the current fork, starting from Deneb.
+		fork = &eth.Fork{
+			PreviousVersion: cfg.CapellaForkVersion,
+			CurrentVersion:  cfg.CapellaForkVersion,
+			Epoch:           cfg.CapellaForkEpoch,
+		}
+	} else {
+		fork = params.ForkFromConfig(cfg, epoch)
+	}
+
+	gvr := genesis.ValidatorsRoot()
+	return signing.Domain(fork, epoch, domainType, gvr[:])
 }
