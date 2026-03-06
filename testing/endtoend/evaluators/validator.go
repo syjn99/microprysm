@@ -269,16 +269,16 @@ type syncAggregateMsg struct {
 }
 
 // countSyncBits decodes a hex-encoded bitvector and returns (set bits count, total bits count).
-func countSyncBits(hexBits string) (uint64, uint64) {
+func countSyncBits(hexBits string) (uint64, uint64, error) {
 	b, err := hex.DecodeString(strings.TrimPrefix(hexBits, "0x"))
 	if err != nil {
-		return 0, 0
+		return 0, 0, errors.Wrap(err, "failed to decode sync committee bits")
 	}
 	var count uint64
 	for _, byt := range b {
 		count += uint64(bits.OnesCount8(byt))
 	}
-	return count, uint64(len(b)) * 8
+	return count, uint64(len(b)) * 8, nil
 }
 
 // validatorsSyncParticipation ensures the validators have an acceptable participation rate for
@@ -383,7 +383,10 @@ func checkSyncParticipationForEpoch(
 			default:
 				// no-op
 			}
-			count, length := countSyncBits(msg.Body.SyncAggregate.SyncCommitteeBits)
+			count, length, err := countSyncBits(msg.Body.SyncAggregate.SyncCommitteeBits)
+			if err != nil {
+				return err
+			}
 			threshold := uint64(float64(length) * expectedPart)
 			if count < threshold {
 				return errors.Errorf("In block of slot %d ,the aggregate bitvector with length of %d only got a count of %d", blockSlot, threshold, count)
@@ -415,7 +418,10 @@ func checkSyncParticipationForEpoch(
 			if skipSlot {
 				continue
 			}
-			count, length := countSyncBits(msg.Body.SyncAggregate.SyncCommitteeBits)
+			count, length, err := countSyncBits(msg.Body.SyncAggregate.SyncCommitteeBits)
+			if err != nil {
+				return err
+			}
 			threshold := uint64(float64(length) * expectedSyncParticipation)
 			if count < threshold {
 				return errors.Errorf("In block of slot %d ,the aggregate bitvector with length of %d only got a count of %d", blockSlot, threshold, count)

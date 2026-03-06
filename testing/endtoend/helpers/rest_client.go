@@ -308,7 +308,7 @@ func (b *BeaconNodeClient) post(ctx context.Context, endpoint string, jsonBody [
 		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("POST %s returned status %d", endpoint, resp.StatusCode)
 	}
 	return nil
@@ -327,7 +327,7 @@ func (b *BeaconNodeClient) postAndRead(ctx context.Context, endpoint string, jso
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("POST %s returned status %d", endpoint, resp.StatusCode)
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, client.MaxBodySize))
@@ -352,7 +352,7 @@ func (b *BeaconNodeClient) SubmitAttestations(ctx context.Context, version strin
 		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, client.MaxBodySize))
 		return fmt.Errorf("POST attestations returned status %d: %s", resp.StatusCode, string(respBody))
 	}
@@ -374,7 +374,7 @@ func (b *BeaconNodeClient) PublishBlockV2(ctx context.Context, version string, j
 		return err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, client.MaxBodySize))
 		return fmt.Errorf("POST block returned status %d: %s", resp.StatusCode, string(respBody))
 	}
