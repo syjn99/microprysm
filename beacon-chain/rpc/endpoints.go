@@ -1002,6 +1002,8 @@ func (s *Service) debugEndpoints(stater lookup.Stater, blocker lookup.Blocker) [
 		ChainInfoFetcher:      s.cfg.ChainInfoFetcher,
 		GenesisTimeFetcher:    s.cfg.GenesisTimeFetcher,
 		Blocker:               blocker,
+		PeersFetcher:          s.cfg.PeersFetcher,
+		PeerManager:           s.cfg.PeerManager,
 	}
 
 	const namespace = "debug"
@@ -1044,6 +1046,15 @@ func (s *Service) debugEndpoints(stater lookup.Stater, blocker lookup.Blocker) [
 				middleware.AcceptEncodingHeaderHandler(),
 			},
 			handler: server.DataColumnSidecars,
+			methods: []string{http.MethodGet},
+		},
+		{
+			template: "/prysm/v1/debug/peers",
+			name:     namespace + ".ListPeers",
+			middleware: []middleware.Middleware{
+				middleware.AcceptHeaderHandler([]string{api.JsonMediaType}),
+			},
+			handler: server.ListPeers,
 			methods: []string{http.MethodGet},
 		},
 	}
