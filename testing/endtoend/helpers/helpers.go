@@ -26,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -284,38 +283,6 @@ func writeURLRespAtPath(url, fp string) error {
 		return err
 	}
 	return nil
-}
-
-// NewLocalConnection creates and returns GRPC connection on a given localhost port.
-func NewLocalConnection(ctx context.Context, port int) (*grpc.ClientConn, error) {
-	endpoint := fmt.Sprintf("127.0.0.1:%d", port)
-	dialOpts := []grpc.DialOption{
-		grpc.WithInsecure(),
-	}
-	conn, err := grpc.DialContext(ctx, endpoint, dialOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
-}
-
-// NewLocalConnections returns number of GRPC connections, along with function to close all of them.
-func NewLocalConnections(ctx context.Context, numConns int) ([]*grpc.ClientConn, func(), error) {
-	conns := make([]*grpc.ClientConn, numConns)
-	for i := range conns {
-		conn, err := NewLocalConnection(ctx, e2e.TestParams.Ports.PrysmBeaconNodeRPCPort+i)
-		if err != nil {
-			return nil, nil, err
-		}
-		conns[i] = conn
-	}
-	return conns, func() {
-		for _, conn := range conns {
-			if err := conn.Close(); err != nil {
-				log.Error(err)
-			}
-		}
-	}, nil
 }
 
 // BeaconAPIHostnames constructs a hostname:port string for the
