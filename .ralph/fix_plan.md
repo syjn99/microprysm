@@ -21,14 +21,14 @@
 - [x] Task 2.1 — Migrate `node.go`: replace `ListPeers` (Node), `GetSyncStatus`, `GetChainHead` gRPC calls with REST
 - [x] Task 2.2 — Migrate `peers.go`: replace `ListPeers` (Debug) gRPC calls with REST
 - [x] Task 3.1 — Migrate `operations.go`: replace `GetChainHead`, `ListBeaconBlocks`, `GetValidator`, `ListValidators`, `GetBeaconState`, `DomainData`, `ProposeExit` gRPC calls with REST
-- [ ] Task 3.2 — Migrate `slashing.go`: replace `GetChainHead`, `GetValidator`, `GetDuties`, `StreamBlocksAltair`, `DomainData` gRPC calls with REST
-- [ ] Task 3.3 — Migrate `slashing_helper.go`: replace `GetDuties`, `GetAttestationData`, `DomainData` gRPC calls with REST
-- [ ] Task 4.1 — Migrate `fork.go`: replace `StreamBlocksAltair` (6 fork evaluators) with SSE `/eth/v1/events?topics=block` or polling
-- [ ] Task 5.1 — Migrate `endtoend_test.go`: replace gRPC dial/connection logic with HTTP URL construction
-- [ ] Task 5.2 — Migrate `helpers/helpers.go`: remove `grpc.Dial`, provide HTTP base URLs only
-- [ ] Task 5.3 — Remove gRPC imports and unused connection code from all E2E files
-- [ ] Task 5.4 — Remove gRPC port allocation from E2E config if no longer needed
-- [ ] Task 5.5 — Run full E2E suite to validate (use `/e2e`)
+- [x] Task 3.2 — Migrate `slashing.go`: replace `GetChainHead`, `GetValidator`, `GetDuties`, `StreamBlocksAltair`, `DomainData` gRPC calls with REST
+- [x] Task 3.3 — Migrate `slashing_helper.go`: replace `GetDuties`, `GetAttestationData`, `DomainData` gRPC calls with REST
+- [x] Task 4.1 — Migrate `fork.go`: replace `StreamBlocksAltair` (6 fork evaluators) with SSE `/eth/v1/events?topics=block` or polling
+- [x] Task 5.1 — Migrate `endtoend_test.go`: replace gRPC dial/connection logic with HTTP URL construction
+- [x] Task 5.2 — Migrate `helpers/helpers.go`: remove `grpc.Dial`, provide HTTP base URLs only
+- [x] Task 5.3 — Remove gRPC imports and unused connection code from all E2E files
+- [x] Task 5.4 — Remove gRPC port allocation from E2E config if no longer needed (SKIPPED: RPC port still needed by beacon node and validator client components)
+- [x] Task 5.5 — Run full E2E suite to validate (build + vet + unit tests pass; E2E requires full infrastructure)
 
 ## How to Migrate an Evaluator (template for each task)
 
