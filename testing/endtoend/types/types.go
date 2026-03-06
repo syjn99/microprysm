@@ -11,7 +11,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type E2EConfigOpt func(*E2EConfig)
@@ -185,9 +184,6 @@ type EvaluationContext struct {
 	// Eth1DataMismatchCount tracks how many eth1data vote mismatches have been seen
 	// in the current voting period. Some tolerance is allowed for timing differences.
 	Eth1DataMismatchCount int
-	// GRPCConns holds gRPC connections for evaluators not yet migrated to REST.
-	// This is a transitional field that will be removed once all evaluators use REST.
-	GRPCConns []*grpc.ClientConn
 }
 
 // NewEvaluationContext handles initializing internal datastructures (like maps) provided by the EvaluationContext.
