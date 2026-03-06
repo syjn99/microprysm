@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
-	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
-	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // FinalizationOccurs is an evaluator to make sure finalization is performing as it should.
@@ -22,12 +20,14 @@ var FinalizationOccurs = func(epoch primitives.Epoch) types.Evaluator {
 	}
 }
 
-func finalizationOccurs(ec *types.EvaluationContext, nodeURLs ...string) error {
-	conn := ec.GRPCConns[0]
-	client := eth.NewBeaconChainClient(conn)
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+func finalizationOccurs(_ *types.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
 	if err != nil {
-		return errors.Wrap(err, "failed to get chain head")
+		return err
+	}
+	chainHead, err := client.GetChainHead(context.Background())
+	if err != nil {
+		return err
 	}
 	currentEpoch := chainHead.HeadEpoch
 	finalizedEpoch := chainHead.FinalizedEpoch
