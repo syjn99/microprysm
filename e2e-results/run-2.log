@@ -1,0 +1,32 @@
+===== E2E RUN 2/3 START: Fri Mar  6 18:03:44 EST 2026 =====
+Another command (pid=61448) is running. Waiting for it to complete on the server (server_pid=37800)...
+Computing main repo mapping: 
+WARNING: Streamed test output requested. All tests will be run locally, without sharding, one at a time
+Loading: 
+Loading: 0 packages loaded
+WARNING: Build options --//proto:network and --test_env have changed, discarding analysis cache (this can be expensive, see https://bazel.build/advanced/performance/iteration-speed).
+Analyzing: target //testing/endtoend:go_default_test (1 packages loaded, 0 targets configured)
+Analyzing: target //testing/endtoend:go_default_test (1 packages loaded, 0 targets configured)
+
+INFO: From BazelWorkspaceStatusAction stable-status.txt:
+date: illegal option -- -
+usage: date [-jnRu] [-I[date|hours|minutes|seconds|ns]] [-f input_fmt]
+            [ -z output_zone ] [-r filename|seconds] [-v[+|-]val[y|m|w|d|H|M|S]]
+            [[[[mm]dd]HH]MM[[cc]yy][.SS] | new_date] [+output_fmt]
+date: illegal option -- -
+usage: date [-jnRu] [-I[date|hours|minutes|seconds|ns]] [-f input_fmt]
+            [ -z output_zone ] [-r filename|seconds] [-v[+|-]val[y|m|w|d|H|M|S]]
+            [[[[mm]dd]HH]MM[[cc]yy][.SS] | new_date] [+output_fmt]
+fatal: No names found, cannot describe anything.
+INFO: Analyzed target //testing/endtoend:go_default_test (239 packages loaded, 21762 targets configured).
+INFO: Found 1 test target...
+Target //testing/endtoend:go_default_test up-to-date:
+  bazel-bin/testing/endtoend/go_default_test_/go_default_test
+INFO: Elapsed time: 36.950s, Critical Path: 0.17s
+INFO: 19 processes: 15 internal, 4 darwin-sandbox.
+INFO: Build completed successfully, 19 total actions
+//testing/endtoend:go_default_test                              (cached) PASSED in 1025.8s
+
+Executed 0 out of 1 test: 1 test passes.
+RESULT: PASS
+===== E2E RUN 2/3 END: Fri Mar  6 18:04:21 EST 2026 =====
