@@ -72,3 +72,73 @@ type DataColumnSidecar struct {
 	SignedBeaconBlockHeader      *SignedBeaconBlockHeader `json:"signed_block_header"`
 	KzgCommitmentsInclusionProof []string                 `json:"kzg_commitments_inclusion_proof"`
 }
+
+type DebugPeersResponse struct {
+	Data []*DebugPeer `json:"data"`
+}
+
+type DebugPeer struct {
+	ListeningAddresses []string         `json:"listening_addresses"`
+	Direction          string           `json:"direction"`
+	ConnectionState    string           `json:"connection_state"`
+	PeerId             string           `json:"peer_id"`
+	Enr                string           `json:"enr"`
+	PeerInfo           *DebugPeerInfo   `json:"peer_info"`
+	PeerStatus         *DebugPeerStatus `json:"peer_status"`
+	LastUpdated        string           `json:"last_updated"`
+	ScoreInfo          *ScoreInfo       `json:"score_info"`
+}
+
+type DebugPeerInfo struct {
+	MetadataV0      *DebugPeerMetadataV0 `json:"metadata_v0,omitempty"`
+	MetadataV1      *DebugPeerMetadataV1 `json:"metadata_v1,omitempty"`
+	MetadataV2      *DebugPeerMetadataV2 `json:"metadata_v2,omitempty"`
+	Protocols       []string             `json:"protocols"`
+	FaultCount      string               `json:"fault_count"`
+	ProtocolVersion string               `json:"protocol_version"`
+	AgentVersion    string               `json:"agent_version"`
+	PeerLatency     string               `json:"peer_latency"`
+}
+
+type DebugPeerMetadataV0 struct {
+	SeqNumber string `json:"seq_number"`
+	Attnets   string `json:"attnets"`
+}
+
+type DebugPeerMetadataV1 struct {
+	SeqNumber string `json:"seq_number"`
+	Attnets   string `json:"attnets"`
+	Syncnets  string `json:"syncnets"`
+}
+
+type DebugPeerMetadataV2 struct {
+	SeqNumber string `json:"seq_number"`
+	Attnets   string `json:"attnets"`
+	Syncnets  string `json:"syncnets"`
+	Custnets  string `json:"custnets"`
+}
+
+type DebugPeerStatus struct {
+	ForkDigest     string `json:"fork_digest"`
+	FinalizedRoot  string `json:"finalized_root"`
+	FinalizedEpoch string `json:"finalized_epoch"`
+	HeadRoot       string `json:"head_root"`
+	HeadSlot       string `json:"head_slot"`
+}
+
+type ScoreInfo struct {
+	TopicScores        map[string]*TopicScoreSnapshot `json:"topic_scores"`
+	ProcessedBlocks    string                         `json:"processed_blocks"`
+	ValidationError    string                         `json:"validation_error"`
+	OverallScore       float32                        `json:"overall_score"`
+	BlockProviderScore float32                        `json:"block_provider_score"`
+	GossipScore        float32                        `json:"gossip_score"`
+	BehaviourPenalty   float32                        `json:"behaviour_penalty"`
+}
+
+type TopicScoreSnapshot struct {
+	TimeInMesh               string  `json:"time_in_mesh_seconds"`
+	FirstMessageDeliveries   float32 `json:"first_message_deliveries"`
+	MeshMessageDeliveries    float32 `json:"mesh_message_deliveries"`
+	InvalidMessageDeliveries float32 `json:"invalid_message_deliveries"`
+}
