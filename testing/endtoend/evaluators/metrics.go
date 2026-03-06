@@ -19,7 +19,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -86,11 +85,11 @@ var metricComparisonTests = []comparisonTest{
 	},
 }
 
-func metricsTest(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
+func metricsTest(ec *types.EvaluationContext, nodeURLs ...string) error {
 	currentSlot := slots.CurrentSlot(genesis.Time())
 	currentEpoch := slots.ToEpoch(currentSlot)
 	forkDigest := params.ForkDigest(currentEpoch)
-	for i := range conns {
+	for i := range ec.GRPCConns {
 		response, err := http.Get(fmt.Sprintf("http://localhost:%d/metrics", e2e.TestParams.Ports.PrysmBeaconNodeMetricsPort+i))
 		if err != nil {
 			// Continue if the connection fails, regular flake.
@@ -106,8 +105,8 @@ func metricsTest(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
 		}
 		time.Sleep(connTimeDelay)
 
-		beaconClient := eth.NewBeaconChainClient(conns[i])
-		nodeClient := eth.NewNodeClient(conns[i])
+		beaconClient := eth.NewBeaconChainClient(ec.GRPCConns[i])
+		nodeClient := eth.NewNodeClient(ec.GRPCConns[i])
 		chainHead, err := beaconClient.GetChainHead(context.Background(), &emptypb.Empty{})
 		if err != nil {
 			return err

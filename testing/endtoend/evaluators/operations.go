@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/rand"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -197,9 +196,9 @@ func (m mismatch) String() string {
 	return fmt.Sprintf("(%#x:%d:%d)", m.k, m.e, m.o)
 }
 
-func processesDepositsInBlocks(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
+func processesDepositsInBlocks(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
 	expected := ec.Balances(e2etypes.PostGenesisDepositBatch)
-	conn := conns[0]
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
 	if err != nil {
@@ -238,8 +237,8 @@ func processesDepositsInBlocks(ec *e2etypes.EvaluationContext, conns ...*grpc.Cl
 	return nil
 }
 
-func verifyGraffitiInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func verifyGraffitiInBlocks(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
 	if err != nil {
@@ -281,8 +280,8 @@ func verifyGraffitiInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.Client
 	return nil
 }
 
-func activatesDepositedValidators(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func activatesDepositedValidators(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
@@ -368,8 +367,8 @@ func getAllValidators(c ethpb.BeaconChainClient) ([]*ethpb.Validator, error) {
 	return vals, nil
 }
 
-func depositedValidatorsAreActive(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func depositedValidatorsAreActive(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
@@ -428,8 +427,8 @@ func depositedValidatorsAreActive(ec *e2etypes.EvaluationContext, conns ...*grpc
 	return nil
 }
 
-func proposeVoluntaryExit(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func proposeVoluntaryExit(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	valClient := ethpb.NewBeaconNodeValidatorClient(conn)
 	beaconClient := ethpb.NewBeaconChainClient(conn)
 	debugClient := ethpb.NewDebugClient(conn)
@@ -523,8 +522,8 @@ func proposeVoluntaryExit(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientC
 	return nil
 }
 
-func validatorsHaveExited(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsHaveExited(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 	for k := range ec.ExitedVals {
 		validatorRequest := &ethpb.GetValidatorRequest{
@@ -543,8 +542,8 @@ func validatorsHaveExited(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientC
 	return nil
 }
 
-func validatorsVoteWithTheMajority(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsVoteWithTheMajority(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
 	if err != nil {
@@ -662,8 +661,8 @@ func validatorsVoteWithTheMajority(ec *e2etypes.EvaluationContext, conns ...*grp
 	return nil
 }
 
-func submitWithdrawal(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func submitWithdrawal(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	beaconClient := ethpb.NewBeaconChainClient(conn)
 	debugClient := ethpb.NewDebugClient(conn)
 
@@ -750,8 +749,8 @@ func submitWithdrawal(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn)
 	return beaconAPIClient.SubmitChangeBLStoExecution(ctx, changes)
 }
 
-func validatorsAreWithdrawn(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsAreWithdrawn(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	beaconClient := ethpb.NewBeaconChainClient(conn)
 	debugClient := ethpb.NewDebugClient(conn)
 

@@ -19,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -65,8 +64,8 @@ func valKeyMap() (map[string]bool, error) {
 	return km, nil
 }
 
-func feeRecipientIsPresent(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func feeRecipientIsPresent(ec *types.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
 	if err != nil {

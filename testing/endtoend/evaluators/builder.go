@@ -12,7 +12,6 @@ import (
 	e2etypes "github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -31,8 +30,8 @@ var BuilderIsActive = e2etypes.Evaluator{
 // occasional builder timeouts or failures.
 const maxNonBuilderBlocks = 2
 
-func builderActive(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func builderActive(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewNodeClient(conn)
 	beaconClient := ethpb.NewBeaconChainClient(conn)
 	genesis, err := client.GetGenesis(context.Background(), &emptypb.Empty{})

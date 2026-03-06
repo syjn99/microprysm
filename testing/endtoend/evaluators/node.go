@@ -54,8 +54,8 @@ var AllNodesHaveSameHead = e2etypes.Evaluator{
 	Evaluation: allNodesHaveSameHead,
 }
 
-func healthzCheck(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	count := len(conns)
+func healthzCheck(_ *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	count := len(nodeURLs)
 	for i := range count {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/healthz", e2e.TestParams.Ports.PrysmBeaconNodeMetricsPort+i))
 		if err != nil {
@@ -96,18 +96,18 @@ func healthzCheck(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) erro
 	return nil
 }
 
-func peersConnect(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	if len(conns) == 1 {
+func peersConnect(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	if len(ec.GRPCConns) == 1 {
 		return nil
 	}
 	ctx := context.Background()
-	for _, conn := range conns {
+	for _, conn := range ec.GRPCConns {
 		nodeClient := eth.NewNodeClient(conn)
 		peersResp, err := nodeClient.ListPeers(ctx, &emptypb.Empty{})
 		if err != nil {
 			return err
 		}
-		expectedPeers := len(conns) - 1 + e2e.TestParams.LighthouseBeaconNodeCount
+		expectedPeers := len(ec.GRPCConns) - 1 + e2e.TestParams.LighthouseBeaconNodeCount
 		if expectedPeers != len(peersResp.Peers) {
 			return fmt.Errorf("unexpected amount of peers, expected %d, received %d", expectedPeers, len(peersResp.Peers))
 		}
@@ -116,8 +116,8 @@ func peersConnect(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) erro
 	return nil
 }
 
-func finishedSyncing(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func finishedSyncing(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	syncNodeClient := eth.NewNodeClient(conn)
 	syncStatus, err := syncNodeClient.GetSyncStatus(context.Background(), &emptypb.Empty{})
 	if err != nil {
@@ -163,24 +163,24 @@ func waitForMidEpoch(ctx context.Context, conn *grpc.ClientConn) error {
 	}
 }
 
-func allNodesHaveSameHead(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
+func allNodesHaveSameHead(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), params.EpochsDuration(2, params.BeaconConfig()))
 	defer cancel()
 	// Wait until we're at least halfway into the epoch to avoid race conditions
 	// at epoch boundaries where nodes may report different epochs.
-	if err := waitForAllMidEpoch(ctx, conns...); err != nil {
+	if err := waitForAllMidEpoch(ctx, ec.GRPCConns...); err != nil {
 		return errors.Wrap(err, "failed waiting for mid-epoch")
 	}
 
-	headEpochs := make([]primitives.Epoch, len(conns))
-	headBlockRoots := make([][]byte, len(conns))
-	justifiedRoots := make([][]byte, len(conns))
-	prevJustifiedRoots := make([][]byte, len(conns))
-	finalizedRoots := make([][]byte, len(conns))
-	chainHeads := make([]*eth.ChainHead, len(conns))
+	headEpochs := make([]primitives.Epoch, len(ec.GRPCConns))
+	headBlockRoots := make([][]byte, len(ec.GRPCConns))
+	justifiedRoots := make([][]byte, len(ec.GRPCConns))
+	prevJustifiedRoots := make([][]byte, len(ec.GRPCConns))
+	finalizedRoots := make([][]byte, len(ec.GRPCConns))
+	chainHeads := make([]*eth.ChainHead, len(ec.GRPCConns))
 	g, _ := errgroup.WithContext(context.Background())
 
-	for i, conn := range conns {
+	for i, conn := range ec.GRPCConns {
 		conIdx := i
 		currConn := conn
 		g.Go(func() error {
@@ -202,7 +202,7 @@ func allNodesHaveSameHead(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientCo
 		return err
 	}
 
-	for i := range conns {
+	for i := range ec.GRPCConns {
 		if headEpochs[0] != headEpochs[i] {
 			return fmt.Errorf(
 				"received conflicting head epochs on node %d, expected %d, received %d",

@@ -18,7 +18,6 @@ import (
 	e2eTypes "github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/testing/util"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -60,8 +59,8 @@ var SlashedValidatorsLoseBalanceAfterEpoch = func(n primitives.Epoch) e2eTypes.E
 
 var slashedIndices []uint64
 
-func validatorsSlashed(_ *e2eTypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsSlashed(ec *e2eTypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	ctx := context.Background()
 	client := eth.NewBeaconChainClient(conn)
 
@@ -89,8 +88,8 @@ func validatorsSlashed(_ *e2eTypes.EvaluationContext, conns ...*grpc.ClientConn)
 	return nil
 }
 
-func validatorsLoseBalance(_ *e2eTypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsLoseBalance(ec *e2eTypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	ctx := context.Background()
 	client := eth.NewBeaconChainClient(conn)
 
@@ -119,8 +118,8 @@ func validatorsLoseBalance(_ *e2eTypes.EvaluationContext, conns ...*grpc.ClientC
 	return nil
 }
 
-func insertDoubleAttestationIntoPool(_ *e2eTypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func insertDoubleAttestationIntoPool(ec *e2eTypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	valClient := eth.NewBeaconNodeValidatorClient(conn)
 	beaconClient := eth.NewBeaconChainClient(conn)
 
@@ -146,7 +145,7 @@ func insertDoubleAttestationIntoPool(_ *e2eTypes.EvaluationContext, conns ...*gr
 
 		// Need to send proposal to both beacon nodes to avoid flakiness.
 		// See: https://github.com/prysmaticlabs/prysm/issues/12415#issuecomment-1874643269
-		c := eth.NewBeaconNodeValidatorClient(conns[0])
+		c := eth.NewBeaconNodeValidatorClient(ec.GRPCConns[0])
 		att, err := h.getSlashableAttestation(i)
 		if err != nil {
 			return err
@@ -155,7 +154,7 @@ func insertDoubleAttestationIntoPool(_ *e2eTypes.EvaluationContext, conns ...*gr
 			return errors.Wrap(err, "could not propose attestation")
 		}
 
-		c1 := eth.NewBeaconNodeValidatorClient(conns[1])
+		c1 := eth.NewBeaconNodeValidatorClient(ec.GRPCConns[1])
 		att1, err := h.getSlashableAttestation(i)
 		if err != nil {
 			return err
@@ -169,8 +168,8 @@ func insertDoubleAttestationIntoPool(_ *e2eTypes.EvaluationContext, conns ...*gr
 	return nil
 }
 
-func proposeDoubleBlock(_ *e2eTypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func proposeDoubleBlock(ec *e2eTypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	valClient := eth.NewBeaconNodeValidatorClient(conn)
 	beaconClient := eth.NewBeaconChainClient(conn)
 
@@ -213,7 +212,7 @@ func proposeDoubleBlock(_ *e2eTypes.EvaluationContext, conns ...*grpc.ClientConn
 	// If the proposer index is in the second validator client, we connect to
 	// the corresponding beacon node instead.
 	if proposerIndex >= primitives.ValidatorIndex(uint64(validatorsPerNode)) {
-		valClient = eth.NewBeaconNodeValidatorClient(conns[1])
+		valClient = eth.NewBeaconNodeValidatorClient(ec.GRPCConns[1])
 	}
 
 	b, err := generateSignedBeaconBlock(chainHead, proposerIndex, valClient, privKeys, "bad state root")
@@ -285,7 +284,7 @@ func generateSignedBeaconBlock(
 		Signature: sig,
 	}
 
-	// We only broadcast to conns[0] here since we can trust that at least 1 node will be online.
+	// We only broadcast to ec.GRPCConns[0] here since we can trust that at least 1 node will be online.
 	// Only broadcasting the attestation to one node also helps test slashing propagation.
 	wb, err := blocks.NewSignedBeaconBlock(signedBlk)
 	if err != nil {

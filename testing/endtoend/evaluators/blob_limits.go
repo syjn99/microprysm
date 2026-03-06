@@ -13,7 +13,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -46,8 +45,8 @@ var BlobLimitsRespected = e2etypes.Evaluator{
 	Evaluation: blobLimitsRespected,
 }
 
-func blobsIncludedInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func blobsIncludedInBlocks(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
@@ -106,8 +105,8 @@ func blobsIncludedInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientC
 	return nil
 }
 
-func blobLimitsRespected(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func blobLimitsRespected(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	nodeClient := ethpb.NewNodeClient(conn)
 	beaconClient := ethpb.NewBeaconChainClient(conn)
 

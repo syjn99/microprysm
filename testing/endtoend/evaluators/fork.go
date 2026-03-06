@@ -13,7 +13,6 @@ import (
 	e2etypes "github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 )
 
 var streamDeadline = 1 * time.Minute
@@ -102,9 +101,9 @@ var FuluForkTransition = e2etypes.Evaluator{
 	Evaluation: fuluForkOccurs,
 }
 
-func altairForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
+func altairForkOccurs(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
 
-	conn := conns[0]
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconNodeValidatorClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), streamDeadline)
@@ -150,8 +149,8 @@ func altairForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) 
 	return nil
 }
 
-func bellatrixForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func bellatrixForkOccurs(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconNodeValidatorClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), streamDeadline)
@@ -199,8 +198,8 @@ func bellatrixForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientCon
 	return nil
 }
 
-func capellaForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func capellaForkOccurs(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconNodeValidatorClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), streamDeadline)
 	defer cancel()
@@ -244,8 +243,8 @@ func capellaForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn)
 	return nil
 }
 
-func denebForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func denebForkOccurs(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconNodeValidatorClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), streamDeadline)
 	defer cancel()
@@ -289,8 +288,8 @@ func denebForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) e
 	return nil
 }
 
-func electraForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func electraForkOccurs(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconNodeValidatorClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), streamDeadline)
 	defer cancel()
@@ -334,8 +333,8 @@ func electraForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn)
 	return nil
 }
 
-func fuluForkOccurs(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func fuluForkOccurs(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconNodeValidatorClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), streamDeadline)

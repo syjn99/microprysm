@@ -7,7 +7,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -19,8 +18,8 @@ var PeersCheck = types.Evaluator{
 	Evaluation: peersTest,
 }
 
-func peersTest(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	debugClient := eth.NewDebugClient(conns[0])
+func peersTest(ec *types.EvaluationContext, nodeURLs ...string) error {
+	debugClient := eth.NewDebugClient(ec.GRPCConns[0])
 
 	peerResponses, err := debugClient.ListPeers(context.Background(), &emptypb.Empty{})
 	if err != nil {

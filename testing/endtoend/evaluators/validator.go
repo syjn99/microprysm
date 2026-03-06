@@ -22,7 +22,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -59,8 +58,8 @@ var ValidatorSyncParticipation = types.Evaluator{
 	Evaluation: validatorsSyncParticipation,
 }
 
-func validatorsAreActive(ec *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsAreActive(ec *types.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 
 	// Balances actually fluctuate but we just want to check initial balance.
@@ -122,8 +121,8 @@ func validatorsAreActive(ec *types.EvaluationContext, conns ...*grpc.ClientConn)
 }
 
 // validatorsParticipating ensures the validators have an acceptable participation rate.
-func validatorsParticipating(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsParticipating(ec *types.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewBeaconChainClient(conn)
 	validatorRequest := &ethpb.GetValidatorParticipationRequest{}
 	participation, err := client.GetValidatorParticipation(context.Background(), validatorRequest)
@@ -233,8 +232,8 @@ func validatorsParticipating(_ *types.EvaluationContext, conns ...*grpc.ClientCo
 
 // validatorsSyncParticipation ensures the validators have an acceptable participation rate for
 // sync committee assignments.
-func validatorsSyncParticipation(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func validatorsSyncParticipation(ec *types.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := ethpb.NewNodeClient(conn)
 	altairClient := ethpb.NewBeaconChainClient(conn)
 	genesis, err := client.GetGenesis(context.Background(), &emptypb.Empty{})

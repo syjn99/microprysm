@@ -113,7 +113,7 @@ type E2EConfig struct {
 	Seed                    int64
 	TracingSinkEndpoint     string
 	Evaluators              []Evaluator
-	EvalInterceptor         func(*EvaluationContext, uint64, []*grpc.ClientConn) bool
+	EvalInterceptor         func(*EvaluationContext, uint64, []string) bool
 	BeaconFlags             []string
 	ValidatorFlags          []string
 	PeerIDs                 []string
@@ -149,8 +149,8 @@ func GenesisFork() int {
 type Evaluator struct {
 	Name   string
 	Policy func(currentEpoch primitives.Epoch) bool
-	// Evaluation accepts one or many/all conns, depending on what is needed by the set of evaluators.
-	Evaluation func(ec *EvaluationContext, conn ...*grpc.ClientConn) error
+	// Evaluation accepts one or many/all HTTP base URLs for beacon nodes.
+	Evaluation func(ec *EvaluationContext, nodeURLs ...string) error
 }
 
 // DepositBatch represents a group of deposits that are sent together during an e2e run.
@@ -185,6 +185,9 @@ type EvaluationContext struct {
 	// Eth1DataMismatchCount tracks how many eth1data vote mismatches have been seen
 	// in the current voting period. Some tolerance is allowed for timing differences.
 	Eth1DataMismatchCount int
+	// GRPCConns holds gRPC connections for evaluators not yet migrated to REST.
+	// This is a transitional field that will be removed once all evaluators use REST.
+	GRPCConns []*grpc.ClientConn
 }
 
 // NewEvaluationContext handles initializing internal datastructures (like maps) provided by the EvaluationContext.

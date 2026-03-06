@@ -7,7 +7,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	e2etypes "github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
-	"google.golang.org/grpc"
 )
 
 const epochToCheck = 50 // must be more than 46 (32 hot states + 16 chkpt interval)
@@ -22,9 +21,9 @@ var ColdStateCheckpoint = e2etypes.Evaluator{
 }
 
 // Checks the first node for an old checkpoint using cold state storage.
-func checkColdStateCheckpoint(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
+func checkColdStateCheckpoint(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
 	ctx := context.Background()
-	client := eth.NewBeaconChainClient(conns[0])
+	client := eth.NewBeaconChainClient(ec.GRPCConns[0])
 
 	for i := range primitives.Epoch(epochToCheck) {
 		res, err := client.ListValidatorAssignments(ctx, &eth.ListValidatorAssignmentsRequest{

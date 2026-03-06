@@ -9,7 +9,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -23,8 +22,8 @@ var FinalizationOccurs = func(epoch primitives.Epoch) types.Evaluator {
 	}
 }
 
-func finalizationOccurs(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
+func finalizationOccurs(ec *types.EvaluationContext, nodeURLs ...string) error {
+	conn := ec.GRPCConns[0]
 	client := eth.NewBeaconChainClient(conn)
 	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
 	if err != nil {
