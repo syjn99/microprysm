@@ -68,3 +68,4 @@ build:remote-cache --experimental_remote_cache_compression
 build:unit-test --config=remote-cache
 build:unit-test --nostamp
 build:unit-test --jobs=4
+build:unit-test --flaky_test_attempts=5
