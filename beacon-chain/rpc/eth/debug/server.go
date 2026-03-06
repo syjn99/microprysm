@@ -6,6 +6,7 @@ package debug
 import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/blockchain"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/db"
+	"github.com/OffchainLabs/prysm/v7/beacon-chain/p2p"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/lookup"
 )
 
@@ -22,4 +23,6 @@ type Server struct {
 	ChainInfoFetcher      blockchain.ChainInfoFetcher
 	GenesisTimeFetcher    blockchain.TimeFetcher
 	Blocker               lookup.Blocker
+	PeersFetcher          p2p.PeersProvider
+	PeerManager           p2p.PeerManager
 }

@@ -127,13 +127,13 @@ type DebugPeerStatus struct {
 }
 
 type ScoreInfo struct {
-	OverallScore       float32                        `json:"overall_score"`
-	ProcessedBlocks    string                         `json:"processed_blocks"`
-	BlockProviderScore float32                        `json:"block_provider_score"`
 	TopicScores        map[string]*TopicScoreSnapshot `json:"topic_scores"`
+	ProcessedBlocks    string                         `json:"processed_blocks"`
+	ValidationError    string                         `json:"validation_error"`
+	OverallScore       float32                        `json:"overall_score"`
+	BlockProviderScore float32                        `json:"block_provider_score"`
 	GossipScore        float32                        `json:"gossip_score"`
 	BehaviourPenalty   float32                        `json:"behaviour_penalty"`
-	ValidationError    string                         `json:"validation_error"`
 }
 
 type TopicScoreSnapshot struct {
