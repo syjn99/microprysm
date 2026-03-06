@@ -39,7 +39,10 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["handlers_test.go"],
+    srcs = [
+        "handlers_peers_test.go",
+        "handlers_test.go",
+    ],
     embed = [":go_default_library"],
     deps = [
         "//api:go_default_library",
@@ -48,6 +51,8 @@ go_test(
         "//beacon-chain/db/testing:go_default_library",
         "//beacon-chain/forkchoice/doubly-linked-tree:go_default_library",
         "//beacon-chain/forkchoice/types:go_default_library",
+        "//beacon-chain/p2p/peers:go_default_library",
+        "//beacon-chain/p2p/testing:go_default_library",
         "//beacon-chain/rpc/core:go_default_library",
         "//beacon-chain/rpc/testutil:go_default_library",
         "//config/params:go_default_library",
@@ -60,5 +65,9 @@ go_test(
         "//testing/require:go_default_library",
         "//testing/util:go_default_library",
         "@com_github_ethereum_go_ethereum//common/hexutil:go_default_library",
+        "@com_github_libp2p_go_libp2p//core/network:go_default_library",
+        "@com_github_libp2p_go_libp2p//core/peer:go_default_library",
+        "@com_github_libp2p_go_libp2p//p2p/host/peerstore/test:go_default_library",
+        "@com_github_multiformats_go_multiaddr//:go_default_library",
     ],
 )
