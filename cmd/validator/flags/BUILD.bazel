@@ -8,6 +8,7 @@ go_library(
     ],
     importpath = "github.com/OffchainLabs/prysm/v7/cmd/validator/flags",
     visibility = [
+        "//cmd/prysm:__subpackages__",
         "//cmd/prysmctl:__subpackages__",
         "//cmd/validator:__subpackages__",
         "//config:__subpackages__",

@@ -21,6 +21,7 @@ func main() {
 		Commands: []*cli.Command{
 			beaconapp.Command(),
 			validatorapp.Command(),
+			combinedCommand(),
 		},
 	}
 

@@ -14,6 +14,7 @@ go_library(
         "//api:__subpackages__",
         "//beacon-chain:__subpackages__",
         "//cmd/beacon-chain:__subpackages__",
+        "//cmd/prysm:__subpackages__",
         "//testing/endtoend:__subpackages__",
     ],
     deps = [
