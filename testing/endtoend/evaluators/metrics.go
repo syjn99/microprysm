@@ -13,13 +13,12 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/p2p"
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/genesis"
-	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	e2e "github.com/OffchainLabs/prysm/v7/testing/endtoend/params"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const maxMemStatsBytes = 2000000000 // 2 GiB.
@@ -85,11 +84,11 @@ var metricComparisonTests = []comparisonTest{
 	},
 }
 
-func metricsTest(ec *types.EvaluationContext, nodeURLs ...string) error {
+func metricsTest(_ *types.EvaluationContext, nodeURLs ...string) error {
 	currentSlot := slots.CurrentSlot(genesis.Time())
 	currentEpoch := slots.ToEpoch(currentSlot)
 	forkDigest := params.ForkDigest(currentEpoch)
-	for i := range ec.GRPCConns {
+	for i := range nodeURLs {
 		response, err := http.Get(fmt.Sprintf("http://localhost:%d/metrics", e2e.TestParams.Ports.PrysmBeaconNodeMetricsPort+i))
 		if err != nil {
 			// Continue if the connection fails, regular flake.
@@ -105,17 +104,25 @@ func metricsTest(ec *types.EvaluationContext, nodeURLs ...string) error {
 		}
 		time.Sleep(connTimeDelay)
 
-		beaconClient := eth.NewBeaconChainClient(ec.GRPCConns[i])
-		nodeClient := eth.NewNodeClient(ec.GRPCConns[i])
-		chainHead, err := beaconClient.GetChainHead(context.Background(), &emptypb.Empty{})
+		client, err := helpers.NewBeaconNodeClient(nodeURLs[i])
 		if err != nil {
 			return err
 		}
-		genesisResp, err := nodeClient.GetGenesis(context.Background(), &emptypb.Empty{})
+		ctx := context.Background()
+		chainHead, err := client.GetChainHead(ctx)
 		if err != nil {
 			return err
 		}
-		timeSlot := slots.CurrentSlot(genesisResp.GenesisTime.AsTime())
+		genesisResp, err := client.GetGenesis(ctx)
+		if err != nil {
+			return err
+		}
+		genesisTimeSec, err := strconv.ParseInt(genesisResp.Data.GenesisTime, 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse genesis time")
+		}
+		genesisTime := time.Unix(genesisTimeSec, 0)
+		timeSlot := slots.CurrentSlot(genesisTime)
 		// Allow 1 slot tolerance due to race between calculating current slot
 		// and fetching chain head - a slot boundary may occur between these calls.
 		// Check: chainHead.HeadSlot <= timeSlot <= chainHead.HeadSlot + 1
