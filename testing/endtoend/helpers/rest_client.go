@@ -337,6 +337,50 @@ func (b *BeaconNodeClient) postAndRead(ctx context.Context, endpoint string, jso
 	return body, nil
 }
 
+// SubmitAttestations submits attestations to the beacon pool via
+// POST /eth/v2/beacon/pool/attestations. The version header is required.
+func (b *BeaconNodeClient) SubmitAttestations(ctx context.Context, version string, jsonAtts []byte) error {
+	u := b.c.BaseURL().ResolveReference(&url.URL{Path: "/eth/v2/beacon/pool/attestations"})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(jsonAtts))
+	if err != nil {
+		return errors.Wrap(err, "failed to create POST request")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Eth-Consensus-Version", version)
+	resp, err := b.c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, client.MaxBodySize))
+		return fmt.Errorf("POST attestations returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
+
+// PublishBlockV2 publishes a signed block via POST /eth/v2/beacon/blocks.
+// The version header is required. The body should be a JSON-encoded signed block.
+func (b *BeaconNodeClient) PublishBlockV2(ctx context.Context, version string, jsonBlock []byte) error {
+	u := b.c.BaseURL().ResolveReference(&url.URL{Path: "/eth/v2/beacon/blocks"})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(jsonBlock))
+	if err != nil {
+		return errors.Wrap(err, "failed to create POST request")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Eth-Consensus-Version", version)
+	resp, err := b.c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, client.MaxBodySize))
+		return fmt.Errorf("POST block returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
+
 // ComputeDomainData computes the BLS signature domain for a given domain type
 // and epoch entirely client-side, without requiring a gRPC call. This
 // replicates the server-side DomainData RPC logic, including the special
