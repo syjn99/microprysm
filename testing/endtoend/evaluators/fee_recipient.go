@@ -1,25 +1,26 @@
 package evaluators
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/runtime/interop"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/components"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	e2e "github.com/OffchainLabs/prysm/v7/testing/endtoend/params"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
+	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var FeeRecipientIsPresent = types.Evaluator{
@@ -64,21 +65,35 @@ func valKeyMap() (map[string]bool, error) {
 	return km, nil
 }
 
-func feeRecipientIsPresent(ec *types.EvaluationContext, nodeURLs ...string) error {
-	conn := ec.GRPCConns[0]
-	client := ethpb.NewBeaconChainClient(conn)
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+// executionBlockMsg is a minimal struct for parsing the execution payload fields
+// common to all post-merge block versions (Bellatrix, Capella, Deneb, Electra, Fulu).
+type executionBlockMsg struct {
+	ProposerIndex string `json:"proposer_index"`
+	Body          struct {
+		ExecutionPayload *executionPayloadBase `json:"execution_payload"`
+	} `json:"body"`
+}
+
+type executionPayloadBase struct {
+	FeeRecipient string `json:"fee_recipient"`
+	BlockHash    string `json:"block_hash"`
+	ParentHash   string `json:"parent_hash"`
+}
+
+func feeRecipientIsPresent(_ *types.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get chain head")
 	}
 	epoch := chainHead.HeadEpoch
 	if epoch > 0 {
 		epoch--
-	}
-	req := &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: epoch}}
-	blks, err := client.ListBeaconBlocks(context.Background(), req)
-	if err != nil {
-		return errors.Wrap(err, "failed to list blocks")
 	}
 
 	rpcclient, err := rpc.DialHTTP(fmt.Sprintf("http://127.0.0.1:%d", e2e.TestParams.Ports.Eth1RPCPort))
@@ -96,59 +111,85 @@ func feeRecipientIsPresent(ec *types.EvaluationContext, nodeURLs ...string) erro
 		return err
 	}
 
-	for _, ctr := range blks.BlockContainers {
-		if ctr.GetBellatrixBlock() != nil {
-			bb := ctr.GetBellatrixBlock().Block
-			payload := bb.Body.ExecutionPayload
-			// If the beacon chain has transitioned to Bellatrix, but the EL hasn't hit TTD, we could see a few slots
-			// of blocks with empty payloads.
-			if bytes.Equal(payload.BlockHash, make([]byte, 32)) {
-				continue
-			}
-			if len(payload.FeeRecipient) == 0 || hexutil.Encode(payload.FeeRecipient) == params.BeaconConfig().EthBurnAddressHex {
-				log.WithField("proposerIndex", bb.ProposerIndex).WithField("slot", bb.Slot).Error("Fee recipient eval bug")
-				return errors.New("fee recipient is not set")
-			}
+	// Iterate over all slots in the epoch, fetching each block individually.
+	startSlot, err := slots.EpochStart(epoch)
+	if err != nil {
+		return errors.Wrap(err, "failed to compute start slot")
+	}
+	endSlot := startSlot + params.BeaconConfig().SlotsPerEpoch
+	for slot := startSlot; slot < endSlot; slot++ {
+		blockResp, err := client.GetBlock(ctx, strconv.FormatUint(uint64(slot), 10))
+		if err != nil {
+			// Slot may be empty (missed block); skip.
+			continue
+		}
+		if blockResp.Data == nil {
+			continue
+		}
 
-			fr := common.BytesToAddress(payload.FeeRecipient)
-			gvr := &ethpb.GetValidatorRequest{
-				QueryFilter: &ethpb.GetValidatorRequest_Index{
-					Index: ctr.GetBellatrixBlock().Block.ProposerIndex,
-				},
-			}
-			validator, err := client.GetValidator(context.Background(), gvr)
-			if err != nil {
-				return errors.Wrap(err, "failed to get validators")
-			}
-			pk := hexutil.Encode(validator.GetPublicKey())
+		version := blockResp.Version
+		// Only check post-merge blocks that have execution payloads.
+		if version == "phase0" || version == "altair" {
+			continue
+		}
 
-			if _, ok := lhkeys[pk]; ok {
-				// Don't check lighthouse keys.
-				continue
-			}
+		var msg executionBlockMsg
+		if err := json.Unmarshal(blockResp.Data.Message, &msg); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal block message at slot %d", slot)
+		}
+		if msg.Body.ExecutionPayload == nil {
+			continue
+		}
+		payload := msg.Body.ExecutionPayload
 
-			// In e2e we generate deterministic keys by validator index, and then use a slice of their public key bytes
-			// as the fee recipient, so that this will also be deterministic, so this test can statelessly verify it.
-			// These should be the only keys we see.
-			// Otherwise, something has changed in e2e and this test needs to be updated.
-			_, knownKey := valkeys[pk]
-			if !knownKey {
-				log.WithField("pubkey", pk).
-					WithField("slot", bb.Slot).
-					WithField("proposerIndex", bb.ProposerIndex).
-					WithField("feeRecipient", fr.Hex()).
-					Warn("Unknown key observed, not a deterministically generated key")
-				return errors.New("unknown key observed, not a deterministically generated key")
-			}
+		// If the beacon chain has transitioned to Bellatrix, but the EL hasn't hit TTD, we could see a few slots
+		// of blocks with empty payloads.
+		emptyHash := hexutil.Encode(make([]byte, 32))
+		if payload.BlockHash == emptyHash {
+			continue
+		}
+		if payload.FeeRecipient == "" || payload.FeeRecipient == params.BeaconConfig().EthBurnAddressHex {
+			log.WithField("proposerIndex", msg.ProposerIndex).WithField("slot", slot).Error("Fee recipient eval bug")
+			return errors.New("fee recipient is not set")
+		}
 
-			if components.FeeRecipientFromPubkey(pk) != fr.Hex() {
-				return fmt.Errorf("publickey %s, fee recipient %s does not match the proposer settings fee recipient %s",
-					pk, fr.Hex(), components.FeeRecipientFromPubkey(pk))
-			}
+		fr := common.HexToAddress(payload.FeeRecipient)
 
-			if err := checkRecipientBalance(rpcclient, common.BytesToHash(payload.BlockHash), common.BytesToHash(payload.ParentHash), fr); err != nil {
-				return err
-			}
+		proposerIndex := msg.ProposerIndex
+		validatorResp, err := client.GetValidator(ctx, strconv.FormatUint(uint64(slot), 10), proposerIndex)
+		if err != nil {
+			return errors.Wrap(err, "failed to get validators")
+		}
+		pk := validatorResp.Data.Validator.Pubkey
+
+		if _, ok := lhkeys[pk]; ok {
+			// Don't check lighthouse keys.
+			continue
+		}
+
+		// In e2e we generate deterministic keys by validator index, and then use a slice of their public key bytes
+		// as the fee recipient, so that this will also be deterministic, so this test can statelessly verify it.
+		// These should be the only keys we see.
+		// Otherwise, something has changed in e2e and this test needs to be updated.
+		_, knownKey := valkeys[pk]
+		if !knownKey {
+			log.WithField("pubkey", pk).
+				WithField("slot", slot).
+				WithField("proposerIndex", proposerIndex).
+				WithField("feeRecipient", fr.Hex()).
+				Warn("Unknown key observed, not a deterministically generated key")
+			return errors.New("unknown key observed, not a deterministically generated key")
+		}
+
+		if components.FeeRecipientFromPubkey(pk) != fr.Hex() {
+			return fmt.Errorf("publickey %s, fee recipient %s does not match the proposer settings fee recipient %s",
+				pk, fr.Hex(), components.FeeRecipientFromPubkey(pk))
+		}
+
+		blockHash := common.HexToHash(payload.BlockHash)
+		parentHash := common.HexToHash(payload.ParentHash)
+		if err := checkRecipientBalance(rpcclient, blockHash, parentHash, fr); err != nil {
+			return err
 		}
 	}
 
