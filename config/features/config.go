@@ -44,7 +44,7 @@ type Flags struct {
 	WriteWalletPasswordOnWebOnboarding  bool // WriteWalletPasswordOnWebOnboarding writes the password to disk after Prysm web signup.
 	EnableDoppelGanger                  bool // EnableDoppelGanger enables doppelganger protection on startup for the validator.
 	EnableHistoricalSpaceRepresentation bool // EnableHistoricalSpaceRepresentation enables the saving of registry validators in separate buckets to save space
-	EnableBeaconRESTApi                 bool // EnableBeaconRESTApi enables experimental usage of the beacon REST API by the validator when querying a beacon node
+	EnableBeaconRESTApi                 bool // EnableBeaconRESTApi enables usage of the beacon REST API by the validator when querying a beacon node (default: true)
 	EnableExperimentalAttestationPool   bool // EnableExperimentalAttestationPool enables an experimental attestation pool design.
 	DisableDutiesV2                     bool // DisableDutiesV2 sets validator client to use the get Duties endpoint
 	EnableWeb                           bool // EnableWeb enables the webui on the validator client
@@ -351,9 +351,10 @@ func ConfigureValidator(ctx *cli.Context) error {
 		logEnabled(enableDoppelGangerProtection)
 		cfg.EnableDoppelGanger = true
 	}
-	if ctx.Bool(EnableBeaconRESTApi.Name) {
-		logEnabled(EnableBeaconRESTApi)
-		cfg.EnableBeaconRESTApi = true
+	cfg.EnableBeaconRESTApi = true
+	if ctx.IsSet(EnableBeaconRESTApi.Name) && !ctx.Bool(EnableBeaconRESTApi.Name) {
+		logDisabled(EnableBeaconRESTApi)
+		cfg.EnableBeaconRESTApi = false
 	}
 	if ctx.Bool(DisableDutiesV2.Name) {
 		logEnabled(DisableDutiesV2)
