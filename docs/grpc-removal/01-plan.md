@@ -71,7 +71,7 @@
 - **Risk:** Medium — needs thorough testing. Run E2E tests.
 - **Prerequisite:** Verify all validator duties work via REST
 
-### PR 3.2: Remove gRPC fallback from factories
+### PR 3.2: Remove gRPC from factories ✅
 **Scope:** `validator/client/*-factory/`
 - Remove the feature flag check entirely
 - Factories always return REST implementations
