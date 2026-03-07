@@ -127,19 +127,6 @@ service BeaconChain {
     };
   }
 
-  // Retrieve information about the head of the beacon chain from the view of
-  // the beacon chain node.
-  //
-  // This includes the head block slot and root as well as information about
-  // the most recent finalized and justified slots.
-  // DEPRECATED: This endpoint is superseded by the /eth/v1/beacon Beacon API
-  // endpoint
-  rpc GetChainHead(google.protobuf.Empty) returns (ChainHead) {
-    option deprecated = true;
-    option (google.api.http) = {
-      get : "/eth/v1alpha1/beacon/chainhead"
-    };
-  }
 
   // Retrieve the beacon chain committees for a given epoch.
   //
@@ -233,18 +220,6 @@ service BeaconChain {
     };
   }
 
-  // Retrieve the validator participation information for a given epoch.
-  //
-  // This method returns information about the global participation of
-  // validator attestations. This endpoint allows for retrieval of genesis
-  // information via a boolean query filter.
-  rpc GetValidatorParticipation(GetValidatorParticipationRequest)
-      returns (ValidatorParticipationResponse) {
-    option deprecated = true;
-    option (google.api.http) = {
-      get : "/eth/v1alpha1/validators/participation"
-    };
-  }
 
   // Retrieve the current configuration parameters of the beacon chain.
   rpc GetBeaconConfig(google.protobuf.Empty) returns (BeaconConfig) {

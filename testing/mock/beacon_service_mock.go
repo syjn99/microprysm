@@ -103,26 +103,6 @@ func (mr *MockBeaconChainClientMockRecorder) GetBeaconConfig(ctx, in any, opts .
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBeaconConfig", reflect.TypeOf((*MockBeaconChainClient)(nil).GetBeaconConfig), varargs...)
 }
 
-// GetChainHead mocks base method.
-func (m *MockBeaconChainClient) GetChainHead(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*eth.ChainHead, error) {
-	m.ctrl.T.Helper()
-	varargs := []any{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetChainHead", varargs...)
-	ret0, _ := ret[0].(*eth.ChainHead)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetChainHead indicates an expected call of GetChainHead.
-func (mr *MockBeaconChainClientMockRecorder) GetChainHead(ctx, in any, opts ...any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChainHead", reflect.TypeOf((*MockBeaconChainClient)(nil).GetChainHead), varargs...)
-}
-
 // GetIndividualVotes mocks base method.
 func (m *MockBeaconChainClient) GetIndividualVotes(ctx context.Context, in *eth.IndividualVotesRequest, opts ...grpc.CallOption) (*eth.IndividualVotesRespond, error) {
 	m.ctrl.T.Helper()
@@ -181,26 +161,6 @@ func (mr *MockBeaconChainClientMockRecorder) GetValidatorActiveSetChanges(ctx, i
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidatorActiveSetChanges", reflect.TypeOf((*MockBeaconChainClient)(nil).GetValidatorActiveSetChanges), varargs...)
-}
-
-// GetValidatorParticipation mocks base method.
-func (m *MockBeaconChainClient) GetValidatorParticipation(ctx context.Context, in *eth.GetValidatorParticipationRequest, opts ...grpc.CallOption) (*eth.ValidatorParticipationResponse, error) {
-	m.ctrl.T.Helper()
-	varargs := []any{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetValidatorParticipation", varargs...)
-	ret0, _ := ret[0].(*eth.ValidatorParticipationResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetValidatorParticipation indicates an expected call of GetValidatorParticipation.
-func (mr *MockBeaconChainClientMockRecorder) GetValidatorParticipation(ctx, in any, opts ...any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidatorParticipation", reflect.TypeOf((*MockBeaconChainClient)(nil).GetValidatorParticipation), varargs...)
 }
 
 // GetValidatorPerformance mocks base method.

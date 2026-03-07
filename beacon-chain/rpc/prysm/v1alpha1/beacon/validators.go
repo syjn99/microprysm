@@ -418,33 +418,6 @@ func (bs *Server) GetValidatorActiveSetChanges(
 
 // Deprecated: The gRPC API will remain the default and fully supported through v8 (expected in 2026) but will be eventually removed in favor of REST API.
 //
-// GetValidatorParticipation retrieves the validator participation information for a given epoch,
-// it returns the information about validator's participation rate in voting on the proof of stake
-// rules based on their balance compared to the total active validator balance.
-func (bs *Server) GetValidatorParticipation(
-	ctx context.Context, req *ethpb.GetValidatorParticipationRequest,
-) (*ethpb.ValidatorParticipationResponse, error) {
-	currentSlot := bs.CoreService.GenesisTimeFetcher.CurrentSlot()
-	currentEpoch := slots.ToEpoch(currentSlot)
-
-	var requestedEpoch primitives.Epoch
-	switch q := req.QueryFilter.(type) {
-	case *ethpb.GetValidatorParticipationRequest_Genesis:
-		requestedEpoch = 0
-	case *ethpb.GetValidatorParticipationRequest_Epoch:
-		requestedEpoch = q.Epoch
-	default:
-		requestedEpoch = currentEpoch
-	}
-	vp, err := bs.CoreService.ValidatorParticipation(ctx, requestedEpoch)
-	if err != nil {
-		return nil, status.Errorf(core.ErrorReasonToGRPC(err.Reason), "Could not retrieve validator participation: %v", err.Err)
-	}
-	return vp, nil
-}
-
-// Deprecated: The gRPC API will remain the default and fully supported through v8 (expected in 2026) but will be eventually removed in favor of REST API.
-//
 // GetValidatorQueue retrieves the current validator queue information.
 func (bs *Server) GetValidatorQueue(
 	ctx context.Context, _ *emptypb.Empty,
