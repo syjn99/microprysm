@@ -29,14 +29,12 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/core"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/rewards"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/lookup"
-	nodev1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/node"
 	validatorv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/validator"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/startup"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/state/stategen"
 	chainSync "github.com/OffchainLabs/prysm/v7/beacon-chain/sync"
 	"github.com/OffchainLabs/prysm/v7/config/features"
 	"github.com/OffchainLabs/prysm/v7/config/params"
-	"github.com/OffchainLabs/prysm/v7/io/logs"
 	"github.com/OffchainLabs/prysm/v7/monitoring/tracing"
 	ethpbv1alpha1 "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -258,21 +256,6 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		GraffitiInfo:                     s.cfg.GraffitiInfo,
 	}
 	s.validatorServer = validatorServer
-	nodeServer := &nodev1alpha1.Server{
-		LogsStreamer:          logs.NewStreamServer(),
-		StreamLogsBufferSize:  1000, // Enough to handle bursts of beacon node logs for gRPC streaming.
-		BeaconDB:              s.cfg.BeaconDB,
-		Server:                s.grpcServer,
-		SyncChecker:           s.cfg.SyncService,
-		GenesisTimeFetcher:    s.cfg.GenesisTimeFetcher,
-		PeersFetcher:          s.cfg.PeersFetcher,
-		PeerManager:           s.cfg.PeerManager,
-		GenesisFetcher:        s.cfg.GenesisFetcher,
-		POWChainInfoFetcher:   s.cfg.ExecutionChainInfoFetcher,
-		BeaconMonitoringHost:  s.cfg.BeaconMonitoringHost,
-		BeaconMonitoringPort:  s.cfg.BeaconMonitoringPort,
-		OptimisticModeFetcher: s.cfg.OptimisticModeFetcher,
-	}
 	endpoints := s.endpoints(s.cfg.EnableDebugRPCEndpoints, blocker, stater, rewardFetcher, validatorServer, coreService, ch)
 	for _, e := range endpoints {
 		for i := range e.methods {
@@ -283,8 +266,6 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		}
 	}
 
-	ethpbv1alpha1.RegisterNodeServer(s.grpcServer, nodeServer)
-	ethpbv1alpha1.RegisterHealthServer(s.grpcServer, nodeServer)
 	ethpbv1alpha1.RegisterBeaconNodeValidatorServer(s.grpcServer, validatorServer)
 	// Register reflection service on gRPC server.
 	reflection.Register(s.grpcServer)
