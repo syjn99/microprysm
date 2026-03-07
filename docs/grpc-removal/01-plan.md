@@ -35,7 +35,7 @@
 
 ## Phase 2: Remove gRPC from CLI Tools (Low Risk)
 
-### PR 2.1: Remove gRPC from tools/forkchecker
+### PR 2.1: Remove gRPC from tools/forkchecker ✅
 **Scope:** `tools/forkchecker/forkchecker.go`
 - This tool uses `grpc.Dial()` to connect to a beacon node
 - Option A: Rewrite to use REST API

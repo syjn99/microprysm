@@ -56,7 +56,7 @@
 - gateway.ssz.go
 
 ### tools/ (Phase 2.1)
-- tools/forkchecker/forkchecker.go (delete or rewrite)
+- ~~tools/forkchecker/forkchecker.go~~ ✅ DELETED (PR #5)
 
 ## Files to MODIFY
 
