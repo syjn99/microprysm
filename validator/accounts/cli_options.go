@@ -7,7 +7,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/crypto/bls"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts/wallet"
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager"
-	"google.golang.org/grpc"
 )
 
 // Option type for configuring the accounts cli manager.
@@ -49,30 +48,6 @@ func WithShowPrivateKeys() Option {
 func WithListValidatorIndices() Option {
 	return func(acc *CLIManager) error {
 		acc.listValidatorIndices = true
-		return nil
-	}
-}
-
-// WithGRPCDialOpts adds grpc opts needed to connect to beacon nodes in the accounts cli manager.
-func WithGRPCDialOpts(opts []grpc.DialOption) Option {
-	return func(acc *CLIManager) error {
-		acc.dialOpts = opts
-		return nil
-	}
-}
-
-// WithGRPCHeaders adds grpc headers used when connecting to beacon nodes in the accounts cli manager.
-func WithGRPCHeaders(headers []string) Option {
-	return func(acc *CLIManager) error {
-		acc.grpcHeaders = headers
-		return nil
-	}
-}
-
-// WithBeaconRPCProvider provides a beacon node endpoint to the accounts cli manager.
-func WithBeaconRPCProvider(provider string) Option {
-	return func(acc *CLIManager) error {
-		acc.beaconRPCProvider = provider
 		return nil
 	}
 }

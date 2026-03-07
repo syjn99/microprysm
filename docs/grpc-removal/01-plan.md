@@ -97,9 +97,9 @@
 - Simplify beacon node connection to REST-only
 - **Risk:** Low
 
-### PR 3.6: Remove gRPC from validator/accounts
+### PR 3.6: Remove gRPC from validator/accounts ✅
 **Scope:** `validator/accounts/cli_manager.go`, `validator/accounts/cli_options.go`
-- Remove gRPC dial options configuration
+- ~~Remove gRPC dial options configuration~~ ✅
 - **Risk:** Low
 
 ---

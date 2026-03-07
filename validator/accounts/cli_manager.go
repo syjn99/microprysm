@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	grpcutil "github.com/OffchainLabs/prysm/v7/api/grpc"
 	"github.com/OffchainLabs/prysm/v7/api/rest"
 	"github.com/OffchainLabs/prysm/v7/crypto/bls"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts/wallet"
@@ -16,7 +15,6 @@ import (
 	validatorHelpers "github.com/OffchainLabs/prysm/v7/validator/helpers"
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager"
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager/derived"
-	"google.golang.org/grpc"
 )
 
 // NewCLIManager allows for managing validator accounts via CLI commands.
@@ -45,9 +43,6 @@ type CLIManager struct {
 	importPrivateKeys    bool
 	readPasswordFile     bool
 	skipMnemonicConfirm  bool
-	dialOpts             []grpc.DialOption
-	grpcHeaders          []string
-	beaconRPCProvider    string
 	walletKeyCount       int
 	privateKeyFile       string
 	passwordFilePath     string
@@ -70,14 +65,7 @@ type CLIManager struct {
 }
 
 func (acm *CLIManager) prepareBeaconClients(ctx context.Context) (*iface.ValidatorClient, *iface.NodeClient, error) {
-	if acm.grpcHeaders != nil {
-		ctx = grpcutil.AppendHeaders(ctx, acm.grpcHeaders)
-	}
-
 	var connOpts []validatorHelpers.NodeConnectionOption
-	if acm.dialOpts != nil {
-		connOpts = append(connOpts, validatorHelpers.WithGRPC(ctx, acm.beaconRPCProvider, acm.dialOpts))
-	}
 	if acm.beaconApiEndpoint != "" {
 		connOpts = append(connOpts, validatorHelpers.WithREST(acm.beaconApiEndpoint, rest.WithHttpTimeout(acm.beaconApiTimeout)))
 	}
