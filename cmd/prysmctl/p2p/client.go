@@ -199,6 +199,9 @@ func (c *client) getGenesis(ctx context.Context) (*genesisData, error) {
 	if err := c.getJSON(ctx, "/eth/v1/beacon/genesis", &resp); err != nil {
 		return nil, errors.Wrap(err, "could not get genesis")
 	}
+	if resp.Data == nil {
+		return nil, errors.New("genesis response has nil data")
+	}
 	genesisTimeSec, err := strconv.ParseUint(resp.Data.GenesisTime, 10, 64)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not parse genesis time")
