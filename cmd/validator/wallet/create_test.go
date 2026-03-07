@@ -42,7 +42,6 @@ type TestWalletConfig struct {
 	skipDepositConfirm      bool
 	keymanagerKind          keymanager.Kind
 	numAccounts             int64
-	grpcHeaders             string
 	privateKeyFile          string
 	accountPasswordFile     string
 	walletPasswordFile      string
@@ -76,8 +75,6 @@ func SetupWalletCtx(
 	set.Bool(flags.SkipDepositConfirmationFlag.Name, cfg.skipDepositConfirm, "")
 	set.Bool(flags.SkipMnemonic25thWordCheckFlag.Name, true, "")
 	set.Bool(flags.ExitAllFlag.Name, cfg.exitAll, "")
-	set.String(flags.GRPCHeadersFlag.Name, cfg.grpcHeaders, "")
-
 	if cfg.privateKeyFile != "" {
 		set.String(flags.ImportPrivateKeyFileFlag.Name, cfg.privateKeyFile, "")
 		assert.NoError(tb, set.Set(flags.ImportPrivateKeyFileFlag.Name, cfg.privateKeyFile))
@@ -96,7 +93,6 @@ func SetupWalletCtx(
 	assert.NoError(tb, set.Set(flags.NumAccountsFlag.Name, strconv.Itoa(int(cfg.numAccounts))))
 	assert.NoError(tb, set.Set(flags.SkipDepositConfirmationFlag.Name, strconv.FormatBool(cfg.skipDepositConfirm)))
 	assert.NoError(tb, set.Set(flags.ExitAllFlag.Name, strconv.FormatBool(cfg.exitAll)))
-	assert.NoError(tb, set.Set(flags.GRPCHeadersFlag.Name, cfg.grpcHeaders))
 	return cli.NewContext(&app, set, nil)
 }
 

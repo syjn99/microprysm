@@ -49,10 +49,8 @@ func startNode(ctx *cli.Context) error {
 }
 
 var appFlags = []cli.Flag{
-	flags.BeaconRPCProviderFlag,
 	flags.BeaconRESTApiProviderFlag,
 	flags.BeaconRESTApiHeaders,
-	flags.CertFlag,
 	flags.GraffitiFlag,
 	flags.DisablePenaltyRewardLogFlag,
 	flags.InteropStartIndex,
@@ -62,9 +60,6 @@ var appFlags = []cli.Flag{
 	flags.RPCPort,
 	flags.HTTPServerPort,
 	flags.HTTPServerHost,
-	flags.GRPCRetriesFlag,
-	flags.GRPCRetryDelayFlag,
-	flags.GRPCHeadersFlag,
 	flags.HTTPServerCorsDomain,
 	flags.DisableAccountMetricsFlag,
 	flags.MonitoringPortFlag,
@@ -106,7 +101,6 @@ var appFlags = []cli.Flag{
 	cmd.LogFileName,
 	cmd.ConfigFileFlag,
 	cmd.ChainConfigFileFlag,
-	cmd.GrpcMaxCallRecvMsgSizeFlag,
 	cmd.ApiTimeoutFlag,
 	debug.PProfFlag,
 	debug.PProfAddrFlag,

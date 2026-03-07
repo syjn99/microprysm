@@ -5,7 +5,6 @@ import (
 	"time"
 
 	eventClient "github.com/OffchainLabs/prysm/v7/api/client/event"
-	grpcutil "github.com/OffchainLabs/prysm/v7/api/grpc"
 	"github.com/OffchainLabs/prysm/v7/api/rest"
 	"github.com/OffchainLabs/prysm/v7/async/event"
 	lruwrpr "github.com/OffchainLabs/prysm/v7/cache/lru"
@@ -26,14 +25,7 @@ import (
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager/local"
 	remoteweb3signer "github.com/OffchainLabs/prysm/v7/validator/keymanager/remote-web3signer"
 	"github.com/dgraph-io/ristretto/v2"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpcretry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	grpcopentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	grpcprometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -69,13 +61,6 @@ type Config struct {
 	Wallet                  *wallet.Wallet
 	WalletInitializedFeed   *event.Feed
 	Conn                    validatorHelpers.NodeConnection // Optional: pre-built connection (if nil, built from endpoint configs)
-	MaxHealthChecks         int
-	GRPCMaxCallRecvMsgSize  int
-	GRPCRetries             uint
-	GRPCRetryDelay          time.Duration
-	GRPCHeaders             []string
-	BeaconNodeGRPCEndpoint  string
-	BeaconNodeCert          string
 	BeaconApiEndpoint       string
 	BeaconApiHeaders        map[string][]string
 	BeaconApiTimeout        time.Duration
@@ -84,6 +69,7 @@ type Config struct {
 	InteropKmConfig         *local.InteropKeymanagerConfig
 	Web3SignerConfig        *remoteweb3signer.SetupConfig
 	ProposerSettings        *proposer.Settings
+	MaxHealthChecks         int
 	ValidatorsRegBatchSize  int
 	EnableAPI               bool
 	LogValidatorPerformance bool
@@ -125,20 +111,7 @@ func NewValidatorService(ctx context.Context, cfg *Config) (*ValidatorService, e
 		return s, nil
 	}
 
-	dialOpts := ConstructDialOptions(
-		cfg.GRPCMaxCallRecvMsgSize,
-		cfg.BeaconNodeCert,
-		cfg.GRPCRetries,
-		cfg.GRPCRetryDelay,
-	)
-	if dialOpts == nil {
-		return s, nil
-	}
-
-	s.ctx = grpcutil.AppendHeaders(ctx, cfg.GRPCHeaders)
-
 	conn, err := validatorHelpers.NewNodeConnection(
-		validatorHelpers.WithGRPC(s.ctx, cfg.BeaconNodeGRPCEndpoint, dialOpts),
 		validatorHelpers.WithREST(cfg.BeaconApiEndpoint,
 			rest.WithHttpHeaders(cfg.BeaconApiHeaders),
 			rest.WithHttpTimeout(cfg.BeaconApiTimeout),
@@ -147,9 +120,6 @@ func NewValidatorService(ctx context.Context, cfg *Config) (*ValidatorService, e
 	)
 	if err != nil {
 		return s, err
-	}
-	if cfg.BeaconNodeCert != "" && cfg.BeaconNodeGRPCEndpoint != "" {
-		log.Info("Established secure gRPC connection")
 	}
 	s.conn = conn
 
@@ -317,59 +287,6 @@ func (v *ValidatorService) SetProposerSettings(ctx context.Context, settings *pr
 	// passes settings down to be updated in database and saved in memory.
 	// updates to validator proposer settings will be in the validator object and not validator service.
 	return v.validator.SetProposerSettings(ctx, settings)
-}
-
-// ConstructDialOptions constructs a list of grpc dial options
-func ConstructDialOptions(
-	maxCallRecvMsgSize int,
-	withCert string,
-	grpcRetries uint,
-	grpcRetryDelay time.Duration,
-	extraOpts ...grpc.DialOption,
-) []grpc.DialOption {
-	var transportSecurity grpc.DialOption
-	if withCert != "" {
-		creds, err := credentials.NewClientTLSFromFile(withCert, "")
-		if err != nil {
-			log.WithError(err).Error("Could not get valid credentials")
-			return nil
-		}
-		transportSecurity = grpc.WithTransportCredentials(creds)
-	} else {
-		transportSecurity = grpc.WithInsecure()
-		log.Warn("You are using an insecure gRPC connection. If you are running your beacon node and " +
-			"validator on the same machines, you can ignore this message. If you want to know " +
-			"how to enable secure connections, see: https://docs.prylabs.network/docs/prysm-usage/secure-grpc")
-	}
-
-	if maxCallRecvMsgSize == 0 {
-		maxCallRecvMsgSize = 10 * 5 << 20 // Default 50Mb
-	}
-
-	dialOpts := []grpc.DialOption{
-		transportSecurity,
-		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(maxCallRecvMsgSize),
-			grpcretry.WithMax(grpcRetries),
-			grpcretry.WithBackoff(grpcretry.BackoffLinear(grpcRetryDelay)),
-		),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		grpc.WithUnaryInterceptor(middleware.ChainUnaryClient(
-			grpcopentracing.UnaryClientInterceptor(),
-			grpcprometheus.UnaryClientInterceptor,
-			grpcretry.UnaryClientInterceptor(),
-			grpcutil.LogRequests,
-		)),
-		grpc.WithChainStreamInterceptor(
-			grpcutil.LogStream,
-			grpcopentracing.StreamClientInterceptor(),
-			grpcprometheus.StreamClientInterceptor,
-			grpcretry.StreamClientInterceptor(),
-		),
-	}
-
-	dialOpts = append(dialOpts, extraOpts...)
-	return dialOpts
 }
 
 func (v *ValidatorService) Graffiti(ctx context.Context, pubKey [fieldparams.BLSPubkeyLength]byte) ([]byte, error) {

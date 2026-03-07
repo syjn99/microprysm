@@ -72,7 +72,6 @@ var appHelpFlagGroups = []flagGroup{
 			cmd.LogFileName,
 			cmd.ConfigFileFlag,
 			cmd.ChainConfigFileFlag,
-			cmd.GrpcMaxCallRecvMsgSizeFlag,
 			cmd.AcceptTosFlag,
 			cmd.ApiTimeoutFlag,
 			flags.DisableEphemeralLogFile,
@@ -93,19 +92,14 @@ var appHelpFlagGroups = []flagGroup{
 	{
 		Name: "rpc",
 		Flags: []cli.Flag{
-			flags.CertFlag,
-			flags.BeaconRPCProviderFlag,
+			flags.BeaconRESTApiProviderFlag,
 			flags.BeaconRESTApiHeaders,
 			flags.EnableRPCFlag,
 			flags.RPCHost,
 			flags.RPCPort,
 			flags.HTTPServerPort,
 			flags.HTTPServerHost,
-			flags.GRPCRetriesFlag,
-			flags.GRPCRetryDelayFlag,
 			flags.HTTPServerCorsDomain,
-			flags.GRPCHeadersFlag,
-			flags.BeaconRESTApiProviderFlag,
 		},
 	},
 	{

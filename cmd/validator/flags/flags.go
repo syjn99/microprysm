@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
-	"time"
 
 	"github.com/OffchainLabs/prysm/v7/api"
 	"github.com/OffchainLabs/prysm/v7/config/params"
@@ -31,14 +30,6 @@ var (
 		of validating keys may wish to disable granular prometheus metrics as it increases
 		the data cardinality.`,
 	}
-	// BeaconRPCProviderFlag defines a beacon node RPC endpoint.
-	BeaconRPCProviderFlag = &cli.StringFlag{
-		Name: "beacon-rpc-provider",
-		Usage: `WARNING: The gRPC API will remain the default and fully supported through v8 (expected in 2026) but will be eventually removed in favor of REST API..
-		Beacon node RPC provider endpoint.`,
-		Value: "127.0.0.1:4000",
-	}
-
 	// BeaconRESTApiProviderFlag defines a beacon node REST API endpoint.
 	BeaconRESTApiProviderFlag = &cli.StringFlag{
 		Name:  "beacon-rest-api-provider",
@@ -51,11 +42,6 @@ var (
 		Usage: `Comma-separated list of key value pairs to pass as headers for all HTTP calls to the beacon node. 
 		To provide multiple values for the same key, specify the same key for each value. 
 		Example: --grpc-headers=key1=value1,key1=value2,key2=value3`,
-	}
-	// CertFlag defines a flag for the node's TLS certificate.
-	CertFlag = &cli.StringFlag{
-		Name:  "tls-cert",
-		Usage: "Certificate for secure gRPC. Pass this and the tls-key flag in order to use gRPC securely.",
 	}
 	// EnableRPCFlag enables controlling the validator client via gRPC (without web UI).
 	EnableRPCFlag = &cli.BoolFlag{
@@ -95,27 +81,6 @@ var (
 	GraffitiFlag = &cli.StringFlag{
 		Name:  "graffiti",
 		Usage: "String to include in proposed blocks.",
-	}
-	// GRPCRetriesFlag defines the number of times to retry a failed gRPC request.
-	GRPCRetriesFlag = &cli.UintFlag{
-		Name: "grpc-retries",
-		Usage: `WARNING: The gRPC API will remain the default and fully supported through v8 (expected in 2026) but will be eventually removed in favor of REST API..
-		Number of attempts to retry gRPC requests.`,
-		Value: 5,
-	}
-	// GRPCRetryDelayFlag defines the interval to retry a failed gRPC request.
-	GRPCRetryDelayFlag = &cli.DurationFlag{
-		Name: "grpc-retry-delay",
-		Usage: `WARNING: The gRPC API will remain the default and fully supported through v8 (expected in 2026) but will be eventually removed in favor of REST API..
-		Amount of time between gRPC retry requests.`,
-		Value: 1 * time.Second,
-	}
-	// GRPCHeadersFlag defines a list of headers to send with all gRPC requests.
-	GRPCHeadersFlag = &cli.StringFlag{
-		Name: "grpc-headers",
-		Usage: `WARNING: The gRPC API will remain the default and fully supported through v8 (expected in 2026) but will be eventually removed in favor of REST API..
-		Comma separated list of key value pairs to pass as gRPC headers for all gRPC calls.
-		Example: --grpc-headers=key=value`,
 	}
 	// HTTPServerHost specifies a HTTP server host for the validator client.
 	HTTPServerHost = &cli.StringFlag{

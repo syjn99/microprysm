@@ -84,11 +84,11 @@
 - ~~Delete corresponding test files~~ ✅
 - **Risk:** Low after PR 3.2 (no remaining references)
 
-### PR 3.4: Remove gRPC from validator connection setup
+### PR 3.4: Remove gRPC from validator connection setup ✅
 **Scope:** `validator/helpers/node_connection.go`, `validator/client/service.go`
-- Remove `WithGRPC()` option and `GetGrpcClientConn()` / `GetGrpcConnectionProvider()` methods
-- Remove gRPC dial options construction from service.go (`ConstructDialOptions()`)
-- Remove gRPC-related CLI flags from validator
+- ~~Remove `WithGRPC()` option and `GetGrpcClientConn()` / `GetGrpcConnectionProvider()` methods~~ ✅
+- ~~Remove gRPC dial options construction from service.go (`ConstructDialOptions()`)~~ ✅
+- ~~Remove gRPC-related CLI flags from validator~~ ✅
 - **Risk:** Low after PR 3.3
 
 ### PR 3.5: Remove gRPC from validator/rpc (validator HTTP server) ✅ — [PR #14](https://github.com/syjn99/microprysm/pull/14)
