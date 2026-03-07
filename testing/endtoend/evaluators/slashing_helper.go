@@ -3,8 +3,6 @@ package evaluators
 import (
 	"context"
 	"crypto/rand"
-	"fmt"
-	"sort"
 	"strconv"
 
 	"github.com/OffchainLabs/go-bitfield"
@@ -47,73 +45,30 @@ func (h *doubleAttestationHelper) setup(ctx context.Context) error {
 		pubKeys[i] = priv.PublicKey().Marshal()
 	}
 
-	// Build validator index list for attester duties query.
-	valCount := params.BeaconConfig().MinGenesisActiveValidatorCount
-	indices := make([]string, valCount)
-	for i := range valCount {
-		indices[i] = fmt.Sprintf("%d", i)
-	}
-
-	dutiesResp, err := h.client.GetAttesterDuties(ctx, chainHead.HeadEpoch, indices)
+	// Use the committees API to get the committee directly from the server.
+	committeesResp, err := h.client.GetCommittees(ctx, "head", chainHead.HeadSlot)
 	if err != nil {
-		return errors.Wrap(err, "could not get attester duties")
+		return errors.Wrap(err, "could not get committees")
+	}
+	if len(committeesResp.Data) == 0 {
+		return errors.New("no committees found for head slot")
 	}
 
-	// Find the first committee attesting at the head slot and reconstruct it.
-	headSlotStr := fmt.Sprintf("%d", chainHead.HeadSlot)
-	var committeeIndex primitives.CommitteeIndex
-	var committeeLength uint64
-
-	// Collect all duties for the target slot and first matching committee.
-	type posEntry struct {
-		validatorIndex primitives.ValidatorIndex
-		position       uint64
+	// Use the first committee at the head slot.
+	firstCommittee := committeesResp.Data[0]
+	ci, err := strconv.ParseUint(firstCommittee.Index, 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "could not parse committee index")
 	}
-	var entries []posEntry
-	found := false
+	committeeIndex := primitives.CommitteeIndex(ci)
 
-	for _, duty := range dutiesResp.Data {
-		if duty.Slot != headSlotStr {
-			continue
-		}
-		if !found {
-			ci, err := strconv.ParseUint(duty.CommitteeIndex, 10, 64)
-			if err != nil {
-				return errors.Wrap(err, "could not parse committee index")
-			}
-			committeeIndex = primitives.CommitteeIndex(ci)
-			committeeLength, err = strconv.ParseUint(duty.CommitteeLength, 10, 64)
-			if err != nil {
-				return errors.Wrap(err, "could not parse committee length")
-			}
-			found = true
-		}
-		// Only include duties for the same committee.
-		ci, _ := strconv.ParseUint(duty.CommitteeIndex, 10, 64)
-		if primitives.CommitteeIndex(ci) != committeeIndex {
-			continue
-		}
-		vi, err := strconv.ParseUint(duty.ValidatorIndex, 10, 64)
+	committee := make([]primitives.ValidatorIndex, len(firstCommittee.Validators))
+	for i, valIdxStr := range firstCommittee.Validators {
+		vi, err := strconv.ParseUint(valIdxStr, 10, 64)
 		if err != nil {
-			return errors.Wrap(err, "could not parse validator index")
+			return errors.Wrapf(err, "could not parse validator index at position %d", i)
 		}
-		pos, err := strconv.ParseUint(duty.ValidatorCommitteeIndex, 10, 64)
-		if err != nil {
-			return errors.Wrap(err, "could not parse validator committee index")
-		}
-		entries = append(entries, posEntry{
-			validatorIndex: primitives.ValidatorIndex(vi),
-			position:       pos,
-		})
-	}
-
-	// Sort by position and build the committee array.
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].position < entries[j].position
-	})
-	committee := make([]primitives.ValidatorIndex, committeeLength)
-	for _, e := range entries {
-		committee[e.position] = e.validatorIndex
+		committee[i] = primitives.ValidatorIndex(vi)
 	}
 
 	attDataResp, err := h.client.GetAttestationData(ctx, chainHead.HeadSlot, committeeIndex)

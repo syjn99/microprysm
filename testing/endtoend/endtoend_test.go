@@ -146,9 +146,11 @@ func (r *testRunner) waitExtra(ctx context.Context, e primitives.Epoch, nodeURL 
 				continue
 			}
 			if chainHead.HeadEpoch > e {
+				// no need to wait, other nodes should be caught up
 				return nil
 			}
 			if chainHead.HeadEpoch == e {
+				// wait until halfway into the epoch to give other nodes time to catch up
 				time.Sleep(time.Second * time.Duration(spe/2))
 				return nil
 			}

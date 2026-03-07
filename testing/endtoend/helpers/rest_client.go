@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/OffchainLabs/prysm/v7/api/client"
 	"github.com/OffchainLabs/prysm/v7/api/server/structs"
@@ -53,63 +54,50 @@ type ChainHead struct {
 	PreviousJustifiedRoot  string
 }
 
-// GetChainHead returns chain head information by combining two REST calls:
-//   - GET /eth/v1/beacon/headers/head     → head slot / root
-//   - GET /eth/v1/beacon/finality_checkpoints/head → justified / finalized epochs
+// GetChainHead returns chain head information using the Prysm-specific
+// /prysm/v1/beacon/chain_head endpoint (single call instead of composing
+// from headers + finality_checkpoints).
 func (b *BeaconNodeClient) GetChainHead(ctx context.Context) (*ChainHead, error) {
-	// Fetch head header.
-	headerBody, err := b.c.Get(ctx, "/eth/v1/beacon/headers/head")
+	body, err := b.c.Get(ctx, "/prysm/v1/beacon/chain_head")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get head header")
+		return nil, errors.Wrap(err, "failed to get chain head")
 	}
-	headerResp := &structs.GetBlockHeaderResponse{}
-	if err := json.Unmarshal(headerBody, headerResp); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal head header")
+	resp := &structs.ChainHead{}
+	if err := json.Unmarshal(body, resp); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal chain head")
 	}
-	if headerResp.Data == nil || headerResp.Data.Header == nil || headerResp.Data.Header.Message == nil {
-		return nil, errors.New("head header response has nil data")
-	}
-	headSlot, err := strconv.ParseUint(headerResp.Data.Header.Message.Slot, 10, 64)
+
+	headSlot, err := strconv.ParseUint(resp.HeadSlot, 10, 64)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse head slot")
 	}
-
-	// Fetch finality checkpoints.
-	finBody, err := b.c.Get(ctx, "/eth/v1/beacon/states/head/finality_checkpoints")
+	headEpoch, err := strconv.ParseUint(resp.HeadEpoch, 10, 64)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get finality checkpoints")
+		return nil, errors.Wrap(err, "failed to parse head epoch")
 	}
-	finResp := &structs.GetFinalityCheckpointsResponse{}
-	if err := json.Unmarshal(finBody, finResp); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal finality checkpoints")
-	}
-	if finResp.Data == nil {
-		return nil, errors.New("finality checkpoints response has nil data")
-	}
-
-	finalizedEpoch, err := strconv.ParseUint(finResp.Data.Finalized.Epoch, 10, 64)
+	finalizedEpoch, err := strconv.ParseUint(resp.FinalizedEpoch, 10, 64)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse finalized epoch")
 	}
-	justifiedEpoch, err := strconv.ParseUint(finResp.Data.CurrentJustified.Epoch, 10, 64)
+	justifiedEpoch, err := strconv.ParseUint(resp.JustifiedEpoch, 10, 64)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse justified epoch")
 	}
-	prevJustifiedEpoch, err := strconv.ParseUint(finResp.Data.PreviousJustified.Epoch, 10, 64)
+	prevJustifiedEpoch, err := strconv.ParseUint(resp.PreviousJustifiedEpoch, 10, 64)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse previous justified epoch")
 	}
 
 	return &ChainHead{
 		HeadSlot:               primitives.Slot(headSlot),
-		HeadEpoch:              primitives.Epoch(headSlot / uint64(params.BeaconConfig().SlotsPerEpoch)),
-		HeadBlockRoot:          headerResp.Data.Root,
+		HeadEpoch:              primitives.Epoch(headEpoch),
+		HeadBlockRoot:          resp.HeadBlockRoot,
 		FinalizedEpoch:         primitives.Epoch(finalizedEpoch),
-		FinalizedRoot:          finResp.Data.Finalized.Root,
+		FinalizedRoot:          resp.FinalizedBlockRoot,
 		JustifiedEpoch:         primitives.Epoch(justifiedEpoch),
-		JustifiedRoot:          finResp.Data.CurrentJustified.Root,
+		JustifiedRoot:          resp.JustifiedBlockRoot,
 		PreviousJustifiedEpoch: primitives.Epoch(prevJustifiedEpoch),
-		PreviousJustifiedRoot:  finResp.Data.PreviousJustified.Root,
+		PreviousJustifiedRoot:  resp.PreviousJustifiedBlockRoot,
 	}, nil
 }
 
@@ -145,8 +133,12 @@ func (b *BeaconNodeClient) GetBlockSSZ(ctx context.Context, blockID string) ([]b
 }
 
 // ListValidators returns validators from /eth/v1/beacon/states/{stateID}/validators.
-func (b *BeaconNodeClient) ListValidators(ctx context.Context, stateID string) (*structs.GetValidatorsResponse, error) {
-	body, err := b.c.Get(ctx, fmt.Sprintf("/eth/v1/beacon/states/%s/validators", stateID))
+func (b *BeaconNodeClient) ListValidators(ctx context.Context, stateID string, statuses ...string) (*structs.GetValidatorsResponse, error) {
+	endpoint := fmt.Sprintf("/eth/v1/beacon/states/%s/validators", stateID)
+	if len(statuses) > 0 {
+		endpoint += "?status=" + strings.Join(statuses, ",")
+	}
+	body, err := b.c.Get(ctx, endpoint)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list validators for state %s", stateID)
 	}
@@ -404,4 +396,18 @@ func ComputeDomainData(epoch primitives.Epoch, domainType [4]byte) ([]byte, erro
 
 	gvr := genesis.ValidatorsRoot()
 	return signing.Domain(fork, epoch, domainType, gvr[:])
+}
+
+// GetCommittees returns the committees for a given state and optional slot/epoch filter.
+func (b *BeaconNodeClient) GetCommittees(ctx context.Context, stateID string, slot primitives.Slot) (*structs.GetCommitteesResponse, error) {
+	endpoint := fmt.Sprintf("/eth/v1/beacon/states/%s/committees?slot=%d", stateID, slot)
+	body, err := b.c.Get(ctx, endpoint)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get committees for state %s slot %d", stateID, slot)
+	}
+	resp := &structs.GetCommitteesResponse{}
+	if err := json.Unmarshal(body, resp); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal committees response")
+	}
+	return resp, nil
 }

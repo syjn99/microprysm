@@ -122,8 +122,12 @@ func checkBuilderBlocksForEpoch(
 	for slot := startSlot; slot < endSlot; slot++ {
 		blockResp, err := client.GetBlock(ctx, strconv.FormatUint(uint64(slot), 10))
 		if err != nil {
-			// Slot may be empty (missed block); skip.
-			continue
+			// Only treat 'not found' errors as empty slots (missed blocks).
+			errMsg := strings.ToLower(err.Error())
+			if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "not found") {
+				continue
+			}
+			return errors.Wrapf(err, "failed to get block at slot %d", slot)
 		}
 		if blockResp.Data == nil {
 			continue
