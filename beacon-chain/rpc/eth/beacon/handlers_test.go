@@ -1542,7 +1542,7 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1564,7 +1564,7 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1588,7 +1588,7 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1612,7 +1612,7 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1636,7 +1636,7 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1660,7 +1660,7 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1684,7 +1684,7 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1765,7 +1765,7 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1795,7 +1795,7 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1821,7 +1821,7 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 		var blk structs.SignedBeaconBlockBellatrix
@@ -1846,7 +1846,7 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1872,7 +1872,7 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1898,7 +1898,7 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -1924,7 +1924,7 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2030,7 +2030,7 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2052,7 +2052,7 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2076,7 +2076,7 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2100,7 +2100,7 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2124,7 +2124,7 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2148,7 +2148,7 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2172,7 +2172,7 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2252,7 +2252,7 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2282,7 +2282,7 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2308,7 +2308,7 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2334,7 +2334,7 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2360,7 +2360,7 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2386,7 +2386,7 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 
@@ -2412,7 +2412,7 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:             &mockSync.Sync{IsSyncing: false},
 		}
 

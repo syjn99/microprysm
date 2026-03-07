@@ -1,6 +1,8 @@
 package validator
 
 import (
+	"context"
+
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/blockchain"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/builder"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/cache"
@@ -16,6 +18,11 @@ import (
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 )
 
+// BlockProposer defines the interface for block production.
+type BlockProposer interface {
+	GetBeaconBlock(ctx context.Context, req *eth.BlockRequest) (*eth.GenericBeaconBlock, error)
+}
+
 // Server defines a server implementation of the gRPC Validator service,
 // providing RPC endpoints intended for validator clients.
 type Server struct {
@@ -29,7 +36,7 @@ type Server struct {
 	Stater                 lookup.Stater
 	OptimisticModeFetcher  blockchain.OptimisticModeFetcher
 	SyncCommitteePool      synccommittee.Pool
-	V1Alpha1Server         eth.BeaconNodeValidatorServer
+	ProposerServer         BlockProposer
 	ChainInfoFetcher       blockchain.ChainInfoFetcher
 	BeaconDB               db.HeadAccessDatabase
 	BlockBuilder           builder.BlockBuilder

@@ -29,6 +29,7 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/core"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/rewards"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/lookup"
+	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/proposer"
 	validatorv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/validator"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/startup"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/state/stategen"
@@ -256,7 +257,50 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		GraffitiInfo:                     s.cfg.GraffitiInfo,
 	}
 	s.validatorServer = validatorServer
-	endpoints := s.endpoints(s.cfg.EnableDebugRPCEndpoints, blocker, stater, rewardFetcher, validatorServer, coreService, ch)
+	proposerServer := &proposer.Server{
+		Ctx:                              s.ctx,
+		AttestationCache:                 s.cfg.AttestationCache,
+		AttPool:                          s.cfg.AttestationsPool,
+		ExitPool:                         s.cfg.ExitPool,
+		HeadFetcher:                      s.cfg.HeadFetcher,
+		ForkFetcher:                      s.cfg.ForkFetcher,
+		ForkchoiceFetcher:                s.cfg.ForkchoiceFetcher,
+		GenesisFetcher:                   s.cfg.GenesisFetcher,
+		FinalizationFetcher:              s.cfg.FinalizationFetcher,
+		TimeFetcher:                      s.cfg.GenesisTimeFetcher,
+		BlockFetcher:                     s.cfg.ExecutionChainService,
+		DepositFetcher:                   s.cfg.DepositFetcher,
+		ChainStartFetcher:                s.cfg.ChainStartFetcher,
+		Eth1InfoFetcher:                  s.cfg.ExecutionChainService,
+		OptimisticModeFetcher:            s.cfg.OptimisticModeFetcher,
+		SyncChecker:                      s.cfg.SyncService,
+		StateNotifier:                    s.cfg.StateNotifier,
+		BlockNotifier:                    s.cfg.BlockNotifier,
+		OperationNotifier:                s.cfg.OperationNotifier,
+		P2P:                              s.cfg.Broadcaster,
+		BlockReceiver:                    s.cfg.BlockReceiver,
+		ExecutionPayloadEnvelopeReceiver: s.cfg.ExecutionPayloadEnvelopeReceiver,
+		BlobReceiver:                     s.cfg.BlobReceiver,
+		DataColumnReceiver:               s.cfg.DataColumnReceiver,
+		MockEth1Votes:                    s.cfg.MockEth1Votes,
+		Eth1BlockFetcher:                 s.cfg.ExecutionChainService,
+		PendingDepositsFetcher:           s.cfg.PendingDepositFetcher,
+		SlashingsPool:                    s.cfg.SlashingsPool,
+		StateGen:                         s.cfg.StateGen,
+		SyncCommitteePool:                s.cfg.SyncCommitteeObjectPool,
+		ReplayerBuilder:                  ch,
+		ExecutionEngineCaller:            s.cfg.ExecutionEngineCaller,
+		BeaconDB:                         s.cfg.BeaconDB,
+		BlockBuilder:                     s.cfg.BlockBuilder,
+		BLSChangesPool:                   s.cfg.BLSChangesPool,
+		ClockWaiter:                      s.cfg.ClockWaiter,
+		CoreService:                      coreService,
+		TrackedValidatorsCache:           s.cfg.TrackedValidatorsCache,
+		PayloadIDCache:                   s.cfg.PayloadIDCache,
+		AttestationStateFetcher:          s.cfg.AttestationReceiver,
+		GraffitiInfo:                     s.cfg.GraffitiInfo,
+	}
+	endpoints := s.endpoints(s.cfg.EnableDebugRPCEndpoints, blocker, stater, rewardFetcher, proposerServer, coreService, ch)
 	for _, e := range endpoints {
 		for i := range e.methods {
 			s.cfg.Router.HandleFunc(
