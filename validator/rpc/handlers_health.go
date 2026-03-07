@@ -34,60 +34,11 @@ func (s *Server) GetVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 // StreamBeaconLogs from the beacon node via server-side events.
+// TODO: Re-implement using REST/SSE once the beacon node exposes a log streaming HTTP endpoint.
 func (s *Server) StreamBeaconLogs(w http.ResponseWriter, r *http.Request) {
-	// Wrap service context with a cancel in order to propagate the exiting of
-	// this method properly to the beacon node server.
-	ctx, span := trace.StartSpan(r.Context(), "validator.web.health.StreamBeaconLogs")
+	_, span := trace.StartSpan(r.Context(), "validator.web.health.StreamBeaconLogs")
 	defer span.End()
-	// Set up SSE response headers
-	w.Header().Set("Content-Type", api.EventStreamMediaType)
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", api.KeepAlive)
-
-	// Flush helper function to ensure data is sent to client
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		httputil.HandleError(w, "Streaming unsupported!", http.StatusInternalServerError)
-		return
-	}
-	// TODO: StreamBeaconLogs grpc will need to be replaced in the future
-	client, err := s.healthClient.StreamBeaconLogs(ctx, &emptypb.Empty{})
-	if err != nil {
-		httputil.HandleError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-ctx.Done():
-			return
-		case <-client.Context().Done():
-			return
-		default:
-			logResp, err := client.Recv()
-			if err != nil {
-				httputil.HandleError(w, "could not receive beacon logs from stream: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-			jsonResp, err := json.Marshal(logResp)
-			if err != nil {
-				httputil.HandleError(w, "could not encode log response into JSON: "+err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			// Send the response as an SSE event
-			// Assuming resp has a String() method for simplicity
-			_, err = fmt.Fprintf(w, "%s\n", jsonResp)
-			if err != nil {
-				httputil.HandleError(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			// Flush the data to the client immediately
-			flusher.Flush()
-		}
-	}
+	httputil.HandleError(w, "beacon log streaming is not yet available via REST API", http.StatusNotImplemented)
 }
 
 // StreamValidatorLogs from the validator client via server-side events.

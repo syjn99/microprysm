@@ -91,10 +91,10 @@
 - Remove gRPC-related CLI flags from validator
 - **Risk:** Low after PR 3.3
 
-### PR 3.5: Remove gRPC from validator/rpc (validator HTTP server)
+### PR 3.5: Remove gRPC from validator/rpc (validator HTTP server) ✅ — [PR #14](https://github.com/syjn99/microprysm/pull/14)
 **Scope:** `validator/rpc/beacon.go`, `validator/rpc/intercepter.go`
-- Remove gRPC middleware imports and interceptor code
-- Simplify beacon node connection to REST-only
+- ~~Remove gRPC middleware imports and interceptor code~~ ✅
+- ~~Simplify beacon node connection to REST-only~~ ✅
 - **Risk:** Low
 
 ### PR 3.6: Remove gRPC from validator/accounts ✅
