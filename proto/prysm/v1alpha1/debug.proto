@@ -5,8 +5,6 @@ package ethereum.eth.v1alpha1;
 import "proto/eth/ext/options.proto";
 import "proto/prysm/v1alpha1/node.proto";
 import "proto/prysm/v1alpha1/p2p_messages.proto";
-import "google/api/annotations.proto";
-import "google/protobuf/empty.proto";
 
 option csharp_namespace = "Ethereum.Eth.V1alpha1";
 option go_package = "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1;eth";
@@ -14,50 +12,6 @@ option java_multiple_files = true;
 option java_outer_classname = "DebugProto";
 option java_package = "org.ethereum.eth.v1alpha1";
 option php_namespace = "Ethereum\\Eth\\v1alpha1";
-
-// Debug service API
-//
-// The debug service in Prysm provides API access to various utilities
-// for debugging the beacon node's functionality at runtime, such as being able
-// to retrieve the beacon state by block root or state root from the node
-// directly.
-service Debug {
-  // Returns a beacon state by filter criteria from the beacon node.
-  rpc GetBeaconState(BeaconStateRequest) returns (SSZResponse) {
-    option deprecated = true;
-    option (google.api.http) = {
-      get : "/eth/v1alpha1/debug/state"
-    };
-  }
-  // Returns a beacon state by filter criteria from the beacon node.
-  rpc GetBlock(BlockRequestByRoot) returns (SSZResponse) {
-    option deprecated = true;
-    option (google.api.http) = {
-      get : "/eth/v1alpha1/debug/block"
-    };
-  }
-  // SetLoggingLevel sets the log-level of the beacon node programmatically.
-  rpc SetLoggingLevel(LoggingLevelRequest) returns (google.protobuf.Empty) {
-    option deprecated = true;
-    option (google.api.http) = {
-      post : "/eth/v1alpha1/debug/logging"
-    };
-  }
-  // Returns all the related data for every peer tracked by the host node.
-  rpc ListPeers(google.protobuf.Empty) returns (DebugPeerResponses) {
-    option deprecated = true;
-    option (google.api.http) = {
-      get : "/eth/v1alpha1/debug/peers"
-    };
-  }
-  // Returns requested peer with specified peer id if it exists.
-  rpc GetPeer(ethereum.eth.v1alpha1.PeerRequest) returns (DebugPeerResponse) {
-    option deprecated = true;
-    option (google.api.http) = {
-      get : "/eth/v1alpha1/debug/peer"
-    };
-  }
-}
 
 message InclusionSlotRequest {
   uint64 id = 1;
