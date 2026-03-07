@@ -29,7 +29,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/core"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/rewards"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/lookup"
-	beaconv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/beacon"
 	nodev1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/node"
 	validatorv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/validator"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/startup"
@@ -52,8 +51,6 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/reflection"
 )
-
-const attestationBufferSize = 100
 
 // Service defining an RPC server for a beacon node.
 type Service struct {
@@ -276,32 +273,6 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		BeaconMonitoringPort:  s.cfg.BeaconMonitoringPort,
 		OptimisticModeFetcher: s.cfg.OptimisticModeFetcher,
 	}
-	beaconChainServer := &beaconv1alpha1.Server{
-		Ctx:                         s.ctx,
-		BeaconDB:                    s.cfg.BeaconDB,
-		AttestationCache:            s.cfg.AttestationCache,
-		AttestationsPool:            s.cfg.AttestationsPool,
-		SlashingsPool:               s.cfg.SlashingsPool,
-		OptimisticModeFetcher:       s.cfg.OptimisticModeFetcher,
-		HeadFetcher:                 s.cfg.HeadFetcher,
-		FinalizationFetcher:         s.cfg.FinalizationFetcher,
-		CanonicalFetcher:            s.cfg.CanonicalFetcher,
-		ChainStartFetcher:           s.cfg.ChainStartFetcher,
-		DepositFetcher:              s.cfg.DepositFetcher,
-		BlockFetcher:                s.cfg.ExecutionChainService,
-		GenesisTimeFetcher:          s.cfg.GenesisTimeFetcher,
-		StateNotifier:               s.cfg.StateNotifier,
-		BlockNotifier:               s.cfg.BlockNotifier,
-		AttestationNotifier:         s.cfg.OperationNotifier,
-		Broadcaster:                 s.cfg.Broadcaster,
-		StateGen:                    s.cfg.StateGen,
-		SyncChecker:                 s.cfg.SyncService,
-		ReceivedAttestationsBuffer:  make(chan *ethpbv1alpha1.Attestation, attestationBufferSize),
-		CollectedAttestationsBuffer: make(chan []*ethpbv1alpha1.Attestation, attestationBufferSize),
-		ReplayerBuilder:             ch,
-		CoreService:                 coreService,
-	}
-
 	endpoints := s.endpoints(s.cfg.EnableDebugRPCEndpoints, blocker, stater, rewardFetcher, validatorServer, coreService, ch)
 	for _, e := range endpoints {
 		for i := range e.methods {
@@ -314,7 +285,6 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 
 	ethpbv1alpha1.RegisterNodeServer(s.grpcServer, nodeServer)
 	ethpbv1alpha1.RegisterHealthServer(s.grpcServer, nodeServer)
-	ethpbv1alpha1.RegisterBeaconChainServer(s.grpcServer, beaconChainServer)
 	ethpbv1alpha1.RegisterBeaconNodeValidatorServer(s.grpcServer, validatorServer)
 	// Register reflection service on gRPC server.
 	reflection.Register(s.grpcServer)
