@@ -48,10 +48,10 @@
 - Rewrite to use REST debug endpoints or remove if unused
 - **Risk:** Low — CLI debugging tool
 
-### PR 2.3: Remove gRPC from cmd/validator/accounts/exit
+### PR 2.3: Remove gRPC from cmd/validator/accounts/exit ✅
 **Scope:** `cmd/validator/accounts/exit.go`
-- Uses `grpc.DialContext()` for voluntary exit
-- Rewrite to use REST API (`/eth/v1/beacon/pool/voluntary_exits`)
+- ~~Uses `grpc.DialContext()` for voluntary exit~~
+- Rewritten to use REST API (`/eth/v1/beacon/genesis` for genesis info, REST connection provider for exit submission)
 - **Risk:** Low — single endpoint migration
 
 ---

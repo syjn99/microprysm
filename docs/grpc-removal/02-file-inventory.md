@@ -62,7 +62,7 @@
 
 ### Phase 2
 - cmd/prysmctl/p2p/client.go — rewrite to REST
-- cmd/validator/accounts/exit.go — rewrite to REST
+- cmd/validator/accounts/exit.go — ✅ rewritten to REST (PR #9)
 
 ### Phase 3
 - config/features/config.go — flip/remove EnableBeaconRESTApi
