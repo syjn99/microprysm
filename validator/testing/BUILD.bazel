@@ -15,7 +15,7 @@ go_library(
         "//validator:__subpackages__",
     ],
     deps = [
-        "//api/grpc:go_default_library",
+        "//api/rest:go_default_library",
         "//config/fieldparams:go_default_library",
         "//config/params:go_default_library",
         "//consensus-types/primitives:go_default_library",

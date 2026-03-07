@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	grpcutil "github.com/OffchainLabs/prysm/v7/api/grpc"
+	"github.com/OffchainLabs/prysm/v7/api/rest"
 	"github.com/OffchainLabs/prysm/v7/async/event"
 	"github.com/OffchainLabs/prysm/v7/cmd/validator/flags"
 	"github.com/OffchainLabs/prysm/v7/config/features"
@@ -2539,8 +2539,8 @@ func TestUpdateValidatorStatusCache(t *testing.T) {
 		gomock.Any(),
 		gomock.Any()).Return(mockResponse, nil)
 
-	mockProvider := &grpcutil.MockGrpcProvider{MockHosts: []string{"localhost:4000", "localhost:4001"}}
-	conn, err := validatorHelpers.NewNodeConnection(validatorHelpers.WithGRPCProvider(mockProvider))
+	mockRestProvider := &rest.MockRestProvider{MockHosts: []string{"http://localhost:3500", "http://localhost:3501"}}
+	conn, err := validatorHelpers.NewNodeConnection(validatorHelpers.WithRestProvider(mockRestProvider))
 	require.NoError(t, err)
 
 	v := &validator{

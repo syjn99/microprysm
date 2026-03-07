@@ -2,15 +2,12 @@ package client
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/OffchainLabs/prysm/v7/runtime"
 	"github.com/OffchainLabs/prysm/v7/testing/assert"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
-	logTest "github.com/sirupsen/logrus/hooks/test"
-	"google.golang.org/grpc/metadata"
 )
 
 var _ runtime.Service = (*ValidatorService)(nil)
@@ -31,50 +28,14 @@ func TestStop_CancelsContext(t *testing.T) {
 	}
 }
 
-func TestNew_Insecure(t *testing.T) {
-	hook := logTest.NewGlobal()
+func TestNew_WithRESTEndpoint(t *testing.T) {
 	_, err := NewValidatorService(t.Context(), &Config{
-		BeaconNodeGRPCEndpoint: "localhost:4000",
-		BeaconApiEndpoint:      "http://localhost:3500",
+		BeaconApiEndpoint: "http://localhost:3500",
 	})
 	require.NoError(t, err)
-	require.LogsContain(t, hook, "You are using an insecure gRPC connection")
 }
 
 func TestStatus_NoConnectionError(t *testing.T) {
 	validatorService := &ValidatorService{}
 	assert.ErrorContains(t, "no connection", validatorService.Status())
-}
-
-func TestStart_GrpcHeaders(t *testing.T) {
-	hook := logTest.NewGlobal()
-	ctx := t.Context()
-	for input, output := range map[string][]string{
-		"should-break": {},
-		"key=value":    {"key", "value"},
-		"":             {},
-		",":            {},
-		"key=value,Authorization=Q=": {
-			"key", "value", "Authorization", "Q=",
-		},
-		"Authorization=this is a valid value": {
-			"Authorization", "this is a valid value",
-		},
-	} {
-		cfg := &Config{
-			BeaconNodeGRPCEndpoint: "localhost:4000",
-			BeaconApiEndpoint:      "http://localhost:3500",
-			GRPCHeaders:            strings.Split(input, ","),
-		}
-		validatorService, err := NewValidatorService(ctx, cfg)
-		require.NoError(t, err)
-		md, _ := metadata.FromOutgoingContext(validatorService.ctx)
-		if input == "should-break" {
-			require.LogsContain(t, hook, "Incorrect gRPC header flag format. Skipping should-break")
-		} else if len(output) == 0 {
-			require.DeepEqual(t, md, metadata.MD(nil))
-		} else {
-			require.DeepEqual(t, md, metadata.Pairs(output...))
-		}
-	}
 }
