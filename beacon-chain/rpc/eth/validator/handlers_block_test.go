@@ -53,7 +53,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return block.Message.ToGeneric()
 			}())
 		server := &Server{
-			V1Alpha1Server: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:    syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://foo.example/eth/v3/validator/blocks/1?randao_reveal=%s&graffiti=%s", randao, graffiti), nil)
@@ -88,7 +88,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return block.Message.ToGeneric()
 			}())
 		server := &Server{
-			V1Alpha1Server:     v1alpha1Server,
+			ProposerServer:     v1alpha1Server,
 			SyncChecker:        syncChecker,
 			BlockRewardFetcher: rewardFetcher,
 		}
@@ -125,7 +125,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -163,7 +163,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -201,7 +201,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -239,7 +239,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return g, err
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -277,7 +277,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -315,7 +315,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -353,7 +353,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -391,7 +391,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -429,7 +429,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -467,7 +467,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -488,7 +488,7 @@ func TestProduceBlockV3(t *testing.T) {
 	t.Run("invalid query parameter slot empty", func(t *testing.T) {
 		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
 		server := &Server{
-			V1Alpha1Server: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 		request := httptest.NewRequest(http.MethodGet, "http://foo.example/eth/v3/validator/blocks/", nil)
@@ -501,7 +501,7 @@ func TestProduceBlockV3(t *testing.T) {
 	t.Run("invalid query parameter slot invalid", func(t *testing.T) {
 		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
 		server := &Server{
-			V1Alpha1Server: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:    syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, "http://foo.example/eth/v3/validator/blocks/asdfsad", nil)
@@ -514,7 +514,7 @@ func TestProduceBlockV3(t *testing.T) {
 	t.Run("invalid query parameter randao_reveal invalid", func(t *testing.T) {
 		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
 		server := &Server{
-			V1Alpha1Server: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:    syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, "http://foo.example/eth/v3/validator/blocks/1?randao_reveal=0x213123", nil)
@@ -560,7 +560,7 @@ func TestProduceBlockV3(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -607,7 +607,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return block.Message.ToGeneric()
 			}())
 		server := &Server{
-			V1Alpha1Server: v1alpha1Server,
+			ProposerServer: v1alpha1Server,
 			SyncChecker:    syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://foo.example/eth/v3/validator/blocks/1?randao_reveal=%s&graffiti=%s", randao, graffiti), nil)
@@ -644,7 +644,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 			}())
 
 		server := &Server{
-			V1Alpha1Server:     v1alpha1Server,
+			ProposerServer:     v1alpha1Server,
 			SyncChecker:        syncChecker,
 			BlockRewardFetcher: rewardFetcher,
 		}
@@ -685,7 +685,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 			}())
 		mockChainService := &blockchainTesting.ChainService{}
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: mockChainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -726,7 +726,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -767,7 +767,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -808,7 +808,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return g, err
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -849,7 +849,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -890,7 +890,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -931,7 +931,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -972,7 +972,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -1013,7 +1013,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -1054,7 +1054,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -1097,7 +1097,7 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 				return b, nil
 			}())
 		server := &Server{
-			V1Alpha1Server:        v1alpha1Server,
+			ProposerServer:        v1alpha1Server,
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
