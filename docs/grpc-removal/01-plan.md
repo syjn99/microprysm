@@ -121,7 +121,7 @@
 - Both REST and gRPC handlers delegate to the same `core/` logic
 - **Risk:** Medium — verify REST endpoints cover all functionality
 
-### PR 4.3: Delete v1alpha1 gRPC beacon service implementation
+### ~~PR 4.3: Delete v1alpha1 gRPC beacon service implementation~~ ✅
 **Scope:** `beacon-chain/rpc/prysm/v1alpha1/beacon/` (~6 files)
 - REST equivalents in `beacon-chain/rpc/eth/beacon/`
 - **Risk:** Medium
