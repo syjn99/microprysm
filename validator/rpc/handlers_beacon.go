@@ -19,7 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-// GetBeaconStatus retrieves information about the beacon node gRPC connection
+// GetBeaconStatus retrieves information about the beacon node connection
 // and certain chain metadata, such as the genesis time, the chain head, and the
 // deposit contract address.
 func (s *Server) GetBeaconStatus(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +29,7 @@ func (s *Server) GetBeaconStatus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.WithError(err).Error("beacon node call to get sync status failed")
 		httputil.WriteJson(w, &BeaconStatusResponse{
-			BeaconNodeEndpoint: s.beaconNodeEndpoint,
+			BeaconNodeEndpoint: s.beaconApiEndpoint,
 			Connected:          false,
 			Syncing:            false,
 		})
@@ -49,7 +49,7 @@ func (s *Server) GetBeaconStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.WriteJson(w, &BeaconStatusResponse{
-		BeaconNodeEndpoint:     s.beaconNodeEndpoint,
+		BeaconNodeEndpoint:     s.beaconApiEndpoint,
 		Connected:              true,
 		Syncing:                syncStatus.Syncing,
 		GenesisTime:            fmt.Sprintf("%d", genesisTime),

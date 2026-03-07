@@ -15,7 +15,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/async/event"
 	"github.com/OffchainLabs/prysm/v7/config/features"
 	"github.com/OffchainLabs/prysm/v7/io/logs"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts/wallet"
 	"github.com/OffchainLabs/prysm/v7/validator/client"
 	iface "github.com/OffchainLabs/prysm/v7/validator/client/iface"
@@ -26,48 +25,36 @@ import (
 
 // Config options for the HTTP server.
 type Config struct {
-	HTTPHost               string
-	HTTPPort               int
-	GRPCMaxCallRecvMsgSize int
-	GRPCRetries            uint
-	GRPCRetryDelay         time.Duration
-	GRPCHeaders            []string
-	BeaconNodeGRPCEndpoint string
-	BeaconApiEndpoint      string
-	BeaconAPIHeaders       map[string][]string
-	BeaconApiTimeout       time.Duration
-	BeaconNodeCert         string
-	DB                     db.Database
-	Wallet                 *wallet.Wallet
-	WalletDir              string
-	WalletInitializedFeed  *event.Feed
-	ValidatorService       *client.ValidatorService
-	AuthTokenPath          string
-	Middlewares            []middleware.Middleware
-	Router                 *http.ServeMux
+	HTTPHost              string
+	HTTPPort              int
+	BeaconApiEndpoint     string
+	BeaconAPIHeaders      map[string][]string
+	BeaconApiTimeout      time.Duration
+	DB                    db.Database
+	Wallet                *wallet.Wallet
+	WalletDir             string
+	WalletInitializedFeed *event.Feed
+	ValidatorService      *client.ValidatorService
+	AuthTokenPath         string
+	Middlewares           []middleware.Middleware
+	Router                *http.ServeMux
 }
 
 // Server defining a HTTP server for the remote signer API and registering clients
 type Server struct {
 	walletInitialized         bool
 	logStreamerBufferSize     int
-	grpcMaxCallRecvMsgSize    int
 	walletInitializedFeed     *event.Feed
 	beaconApiTimeout          time.Duration
 	wallet                    *wallet.Wallet
 	validatorService          *client.ValidatorService
 	httpPort                  int
 	cancel                    context.CancelFunc
-	grpcRetries               uint
-	grpcRetryDelay            time.Duration
 	server                    *httprest.Server
 	router                    *http.ServeMux
 	authTokenPath             string
-	beaconNodeCert            string
 	beaconApiEndpoint         string
 	beaconApiHeaders          map[string][]string
-	beaconNodeEndpoint        string
-	healthClient              ethpb.HealthClient
 	nodeClient                iface.NodeClient
 	chainClient               iface.ChainClient
 	beaconNodeValidatorClient iface.ValidatorClient
@@ -79,35 +66,29 @@ type Server struct {
 	ctx                       context.Context
 	walletDir                 string
 	jwtSecret                 []byte
-	grpcHeaders               []string
 }
 
 // NewServer instantiates a new HTTP server.
 func NewServer(ctx context.Context, cfg *Config) *Server {
 	ctx, cancel := context.WithCancel(ctx)
 	server := &Server{
-		ctx:                    ctx,
-		cancel:                 cancel,
-		logStreamer:            logs.NewStreamServer(),
-		logStreamerBufferSize:  1000, // Enough to handle most bursts of logs in the validator client.
-		httpHost:               cfg.HTTPHost,
-		httpPort:               cfg.HTTPPort,
-		grpcMaxCallRecvMsgSize: cfg.GRPCMaxCallRecvMsgSize,
-		grpcRetries:            cfg.GRPCRetries,
-		grpcRetryDelay:         cfg.GRPCRetryDelay,
-		grpcHeaders:            cfg.GRPCHeaders,
-		validatorService:       cfg.ValidatorService,
-		authTokenPath:          cfg.AuthTokenPath,
-		db:                     cfg.DB,
-		walletDir:              cfg.WalletDir,
-		walletInitializedFeed:  cfg.WalletInitializedFeed,
-		walletInitialized:      cfg.Wallet != nil,
-		wallet:                 cfg.Wallet,
-		beaconApiTimeout:       cfg.BeaconApiTimeout,
-		beaconApiEndpoint:      cfg.BeaconApiEndpoint,
-		beaconApiHeaders:       cfg.BeaconAPIHeaders,
-		beaconNodeEndpoint:     cfg.BeaconNodeGRPCEndpoint,
-		router:                 cfg.Router,
+		ctx:                   ctx,
+		cancel:                cancel,
+		logStreamer:           logs.NewStreamServer(),
+		logStreamerBufferSize: 1000, // Enough to handle most bursts of logs in the validator client.
+		httpHost:              cfg.HTTPHost,
+		httpPort:              cfg.HTTPPort,
+		validatorService:      cfg.ValidatorService,
+		authTokenPath:         cfg.AuthTokenPath,
+		db:                    cfg.DB,
+		walletDir:             cfg.WalletDir,
+		walletInitializedFeed: cfg.WalletInitializedFeed,
+		walletInitialized:     cfg.Wallet != nil,
+		wallet:                cfg.Wallet,
+		beaconApiTimeout:      cfg.BeaconApiTimeout,
+		beaconApiEndpoint:     cfg.BeaconApiEndpoint,
+		beaconApiHeaders:      cfg.BeaconAPIHeaders,
+		router:                cfg.Router,
 	}
 
 	if server.authTokenPath == "" && server.walletDir != "" {
@@ -124,10 +105,10 @@ func NewServer(ctx context.Context, cfg *Config) *Server {
 		go server.refreshAuthTokenFromFileChanges(server.ctx, server.authTokenPath)
 	}
 
-	// Register a gRPC or HTTP client to the beacon node.
-	// Used for proxy calls to beacon node from validator REST handlers
+	// Register a REST client to the beacon node.
+	// Used for proxy calls to beacon node from validator REST handlers.
 	if err := server.registerBeaconClient(); err != nil {
-		log.WithError(err).Fatal("Could not register beacon chain gRPC or HTTP client")
+		log.WithError(err).Fatal("Could not register beacon chain REST client")
 	}
 
 	// Adding AuthTokenHandler to the list of middlewares
@@ -151,7 +132,7 @@ func NewServer(ctx context.Context, cfg *Config) *Server {
 	return server
 }
 
-// Start the HTTP server and registers clients that can communicate via HTTP or gRPC.
+// Start the HTTP server.
 func (s *Server) Start() {
 	s.server.Start()
 }

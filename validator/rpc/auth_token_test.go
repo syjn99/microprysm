@@ -17,51 +17,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/golang-jwt/jwt/v4"
 	logTest "github.com/sirupsen/logrus/hooks/test"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 func setupWalletDir(t testing.TB) string {
 	walletDir := filepath.Join(t.TempDir(), "wallet")
 	require.NoError(t, os.MkdirAll(walletDir, os.ModePerm))
 	return walletDir
-}
-
-func TestServer_AuthenticateUsingExistingToken(t *testing.T) {
-	// Initializing for the first time, there is no auth token file in
-	// the wallet directory, so we generate a jwt token and secret from scratch.
-	walletDir := setupWalletDir(t)
-	authTokenPath := filepath.Join(walletDir, api.AuthTokenFileName)
-	srv := &Server{
-		authTokenPath: authTokenPath,
-	}
-
-	err := srv.initializeAuthToken()
-	require.NoError(t, err)
-
-	unaryInfo := &grpc.UnaryServerInfo{
-		FullMethod: "Proto.CreateWallet",
-	}
-	unaryHandler := func(ctx context.Context, req any) (any, error) {
-		return nil, nil
-	}
-	ctxMD := map[string][]string{
-		"authorization": {"Bearer " + srv.authToken},
-	}
-	ctx := t.Context()
-	ctx = metadata.NewIncomingContext(ctx, ctxMD)
-	_, err = srv.AuthTokenInterceptor()(ctx, "xyz", unaryInfo, unaryHandler)
-	require.NoError(t, err)
-
-	// Next up, we make the same request but reinitialize the server and we should still
-	// pass with the same auth token.
-	srv = &Server{
-		authTokenPath: authTokenPath,
-	}
-	err = srv.initializeAuthToken()
-	require.NoError(t, err)
-	_, err = srv.AuthTokenInterceptor()(ctx, "xyz", unaryInfo, unaryHandler)
-	require.NoError(t, err)
 }
 
 func TestServer_RefreshAuthTokenOnFileChange(t *testing.T) {

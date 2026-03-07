@@ -1,38 +1,12 @@
 package rpc
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
 	"github.com/OffchainLabs/prysm/v7/api"
 	"github.com/OffchainLabs/prysm/v7/network/httputil"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
-
-// AuthTokenInterceptor is a gRPC unary interceptor to authorize incoming requests.
-func (s *Server) AuthTokenInterceptor() grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req any,
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (any, error) {
-		if err := s.authorize(ctx); err != nil {
-			return nil, err
-		}
-		h, err := handler(ctx, req)
-		log.WithError(err).WithFields(logrus.Fields{
-			"FullMethod": info.FullMethod,
-			"Server":     info.Server,
-		}).Debug("Request handled")
-		return h, err
-	}
-}
 
 // AuthTokenHandler is an HTTP handler to authorize a route.
 func (s *Server) AuthTokenHandler(next http.Handler) http.Handler {
@@ -67,25 +41,4 @@ func (s *Server) AuthTokenHandler(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
-}
-
-// Authorize the token received is valid.
-func (s *Server) authorize(ctx context.Context) error {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return status.Errorf(codes.InvalidArgument, "Retrieving metadata failed")
-	}
-
-	authHeader, ok := md["authorization"]
-	if !ok {
-		return status.Errorf(codes.Unauthenticated, "Authorization token could not be found")
-	}
-	if len(authHeader) < 1 || !strings.Contains(authHeader[0], "Bearer ") {
-		return status.Error(codes.Unauthenticated, "Invalid auth header, needs Bearer {token}")
-	}
-	token := strings.Split(authHeader[0], "Bearer ")[1]
-	if strings.TrimSpace(token) != s.authToken || strings.TrimSpace(s.authToken) == "" {
-		return status.Errorf(codes.Unauthenticated, "Forbidden: token value is invalid")
-	}
-	return nil
 }

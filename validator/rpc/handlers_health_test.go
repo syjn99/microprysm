@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,37 +13,8 @@ import (
 	pb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
 	validatormock "github.com/OffchainLabs/prysm/v7/testing/validator-mock"
-	"github.com/golang/protobuf/ptypes/empty"
 	"go.uber.org/mock/gomock"
-	"google.golang.org/grpc"
 )
-
-type MockBeaconNodeHealthClient struct {
-	grpc.ClientStream
-	logs []*pb.LogsResponse
-	err  error
-}
-
-func (m *MockBeaconNodeHealthClient) StreamBeaconLogs(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (pb.Health_StreamBeaconLogsClient, error) {
-	return m, m.err
-}
-
-func (m *MockBeaconNodeHealthClient) Recv() (*pb.LogsResponse, error) {
-	if len(m.logs) == 0 {
-		return nil, io.EOF
-	}
-	log := m.logs[0]
-	m.logs = m.logs[1:]
-	return log, nil
-}
-
-func (m *MockBeaconNodeHealthClient) SendMsg(_ any) error {
-	return m.err
-}
-
-func (m *MockBeaconNodeHealthClient) Context() context.Context {
-	return context.Background()
-}
 
 type flushableResponseRecorder struct {
 	*httptest.ResponseRecorder
@@ -55,55 +25,15 @@ func (f *flushableResponseRecorder) Flush() {
 	f.flushed = true
 }
 
-func TestStreamBeaconLogs(t *testing.T) {
-	logs := []*pb.LogsResponse{
-		{
-			Logs: []string{"log1", "log2"},
-		},
-		{
-			Logs: []string{"log3", "log4"},
-		},
-	}
-
-	mockClient := &MockBeaconNodeHealthClient{
-		logs: logs,
-		err:  nil,
-	}
-
-	// Setting up the mock in the server struct
+func TestStreamBeaconLogs_NotImplemented(t *testing.T) {
 	s := Server{
-		ctx:          t.Context(),
-		healthClient: mockClient,
+		ctx: t.Context(),
 	}
-
-	// Create a mock ResponseWriter and Request
-	w := &flushableResponseRecorder{
-		ResponseRecorder: httptest.NewRecorder(),
-	}
+	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/v2/validator/health/logs/beacon/stream", nil)
-
-	// Call the function
 	s.StreamBeaconLogs(w, r)
-
-	// Assert the results
 	resp := w.Result()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Expected status OK but got %v", resp.StatusCode)
-	}
-	ct, ok := resp.Header["Content-Type"]
-	require.Equal(t, ok, true)
-	require.Equal(t, ct[0], api.EventStreamMediaType)
-	cn, ok := resp.Header["Connection"]
-	require.Equal(t, ok, true)
-	require.Equal(t, cn[0], api.KeepAlive)
-	body, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
-	require.NotNil(t, body)
-	require.StringContains(t, `{"logs":["log1","log2"]}`, string(body))
-	require.StringContains(t, `{"logs":["log3","log4"]}`, string(body))
-	if !w.flushed {
-		t.Fatal("Flush was not called")
-	}
+	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
 }
 
 func TestStreamValidatorLogs(t *testing.T) {
