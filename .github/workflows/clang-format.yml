@@ -5,12 +5,10 @@ on:
     branches: [ '*' ]
   pull_request:
     branches: [ '*' ]
-  merge_group:
-    types: [checks_requested]
 
 jobs:
   clang-format-checking:
-    runs-on: ubuntu-4
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       # Is this step failing for you?

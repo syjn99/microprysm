@@ -47,3 +47,12 @@ Executables (`cmd/`): `beacon-chain`, `validator`, `prysmctl`, `client-stats`
 ## Nogo Analyzers
 
 20+ custom analyzers in `tools/analyzers/` enforced by Bazel. Key rules: `cryptorand` (no math/rand), `errcheck`, `logcapitalization` (lowercase logs), `nopanic` (no panics), `featureconfig`, `recursivelock`. Build fails on violations.
+
+## Git / PR Rules
+
+- Remote: `origin` = syjn99/microprysm
+- Default branch: `develop`
+- PRs: `gh pr create --repo syjn99/microprysm --base develop --fill`
+- Branch naming: `fix/issue-{number}` or `feat/{feature-name}`
+- **NEVER force push**
+- Run `/precheck` before every PR
