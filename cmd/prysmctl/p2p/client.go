@@ -4,13 +4,22 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/OffchainLabs/go-bitfield"
+	"github.com/OffchainLabs/prysm/v7/api/server/structs"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/p2p"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/p2p/encoder"
 	"github.com/OffchainLabs/prysm/v7/config/params"
+	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/wrapper"
 	ecdsaprysm "github.com/OffchainLabs/prysm/v7/crypto/ecdsa"
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
@@ -32,16 +41,27 @@ import (
 	libp2ptcp "github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/pkg/errors"
 	ssz "github.com/prysmaticlabs/fastssz"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+// chainHead holds chain head data fetched via REST.
+type chainHead struct {
+	HeadSlot       primitives.Slot
+	HeadRoot       []byte
+	FinalizedEpoch primitives.Epoch
+	FinalizedRoot  []byte
+}
+
+// genesisData holds genesis data fetched via REST.
+type genesisData struct {
+	GenesisTime           time.Time
+	GenesisValidatorsRoot [32]byte
+}
 
 // A minimal client for peering with beacon nodes over libp2p and sending p2p RPC requests for data.
 type client struct {
-	host         host.Host
-	meta         metadata.Metadata
-	beaconClient pb.BeaconChainClient
-	nodeClient   pb.NodeClient
+	host    host.Host
+	meta    metadata.Metadata
+	baseURL string // REST API base URL, e.g. "http://localhost:3500"
 }
 
 func newClient(beaconEndpoints []string, tcpPort, quicPort uint) (*client, error) {
@@ -74,17 +94,10 @@ func newClient(beaconEndpoints []string, tcpPort, quicPort uint) (*client, error
 	if len(beaconEndpoints) == 0 {
 		return nil, errors.New("no specified beacon API endpoints")
 	}
-	conn, err := grpc.Dial(beaconEndpoints[0], grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	beaconClient := pb.NewBeaconChainClient(conn)
-	nodeClient := pb.NewNodeClient(conn)
 	return &client{
-		host:         h,
-		meta:         meta,
-		beaconClient: beaconClient,
-		nodeClient:   nodeClient,
+		host:    h,
+		meta:    meta,
+		baseURL: beaconEndpoints[0],
 	}, nil
 }
 
@@ -149,43 +162,126 @@ func (c *client) Send(
 	return stream, nil
 }
 
+// fetchJSON performs an HTTP GET and decodes the JSON response into result.
+func fetchJSON(ctx context.Context, url string, result any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	return json.NewDecoder(resp.Body).Decode(result)
+}
+
+// getJSON performs an HTTP GET against the client's beacon node and decodes the JSON response.
+func (c *client) getJSON(ctx context.Context, path string, result any) error {
+	return fetchJSON(ctx, c.baseURL+path, result)
+}
+
+// hexDecode decodes a 0x-prefixed hex string.
+func hexDecode(s string) ([]byte, error) {
+	return hex.DecodeString(strings.TrimPrefix(s, "0x"))
+}
+
+// getGenesis fetches genesis data from the beacon node REST API.
+func (c *client) getGenesis(ctx context.Context) (*genesisData, error) {
+	var resp structs.GetGenesisResponse
+	if err := c.getJSON(ctx, "/eth/v1/beacon/genesis", &resp); err != nil {
+		return nil, errors.Wrap(err, "could not get genesis")
+	}
+	genesisTimeSec, err := strconv.ParseUint(resp.Data.GenesisTime, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse genesis time")
+	}
+	valsRoot, err := hexDecode(resp.Data.GenesisValidatorsRoot)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode genesis validators root")
+	}
+	return &genesisData{
+		GenesisTime:           time.Unix(int64(genesisTimeSec), 0),
+		GenesisValidatorsRoot: bytesutil.ToBytes32(valsRoot),
+	}, nil
+}
+
+// getChainHead fetches the head slot/root and finality checkpoints from the beacon node REST API.
+func (c *client) getChainHead(ctx context.Context) (*chainHead, error) {
+	var headerResp structs.GetBlockHeaderResponse
+	if err := c.getJSON(ctx, "/eth/v1/beacon/headers/head", &headerResp); err != nil {
+		return nil, errors.Wrap(err, "could not get head header")
+	}
+	headSlot, err := strconv.ParseUint(headerResp.Data.Header.Message.Slot, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse head slot")
+	}
+	headRoot, err := hexDecode(headerResp.Data.Root)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode head root")
+	}
+
+	var cpResp structs.GetFinalityCheckpointsResponse
+	if err := c.getJSON(ctx, "/eth/v1/beacon/states/head/finality_checkpoints", &cpResp); err != nil {
+		return nil, errors.Wrap(err, "could not get finality checkpoints")
+	}
+	finalizedEpoch, err := strconv.ParseUint(cpResp.Data.Finalized.Epoch, 10, 64)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse finalized epoch")
+	}
+	finalizedRoot, err := hexDecode(cpResp.Data.Finalized.Root)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not decode finalized root")
+	}
+
+	return &chainHead{
+		HeadSlot:       primitives.Slot(headSlot),
+		HeadRoot:       headRoot,
+		FinalizedEpoch: primitives.Epoch(finalizedEpoch),
+		FinalizedRoot:  finalizedRoot,
+	}, nil
+}
+
 func (c *client) retrievePeerAddressesViaRPC(ctx context.Context, beaconEndpoints []string) ([]string, error) {
 	if len(beaconEndpoints) == 0 {
-		return nil, errors.New("no beacon RPC endpoints specified")
+		return nil, errors.New("no beacon API endpoints specified")
 	}
 	peers := make([]string, 0)
-	for i := range beaconEndpoints {
-		conn, err := grpc.Dial(beaconEndpoints[i], grpc.WithInsecure())
-		if err != nil {
+	for _, endpoint := range beaconEndpoints {
+		var resp structs.GetIdentityResponse
+		if err := fetchJSON(ctx, endpoint+"/eth/v1/node/identity", &resp); err != nil {
 			return nil, err
 		}
-		nodeClient := pb.NewNodeClient(conn)
-		hostData, err := nodeClient.GetHost(ctx, &emptypb.Empty{})
-		if err != nil {
-			return nil, err
-		}
-		if len(hostData.Addresses) == 0 {
+		if len(resp.Data.P2PAddresses) == 0 {
 			continue
 		}
-		peers = append(peers, hostData.Addresses[0]+"/p2p/"+hostData.PeerId)
+		// P2P addresses already include the peer ID in multiaddr format.
+		peers = append(peers, resp.Data.P2PAddresses[0])
 	}
 	return peers, nil
 }
 
 func (c *client) initializeMockChainService(ctx context.Context) (*mockChain, error) {
-	genesisResp, err := c.nodeClient.GetGenesis(ctx, &emptypb.Empty{})
+	genesis, err := c.getGenesis(ctx)
 	if err != nil {
 		return nil, err
 	}
-	currEpoch := slots.ToEpoch(slots.CurrentSlot(genesisResp.GenesisTime.AsTime()))
+	currEpoch := slots.ToEpoch(slots.CurrentSlot(genesis.GenesisTime))
 	currFork, err := params.Fork(currEpoch)
 	if err != nil {
 		return nil, err
 	}
 	return &mockChain{
-		genesisTime:     genesisResp.GenesisTime.AsTime(),
+		genesisTime:     genesis.GenesisTime,
 		currentFork:     currFork,
-		genesisValsRoot: bytesutil.ToBytes32(genesisResp.GenesisValidatorsRoot),
+		genesisValsRoot: genesis.GenesisValidatorsRoot,
 	}, nil
 }
 
