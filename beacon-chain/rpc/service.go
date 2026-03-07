@@ -30,7 +30,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/rewards"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/lookup"
 	beaconv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/beacon"
-	debugv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/debug"
 	nodev1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/node"
 	validatorv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/validator"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/startup"
@@ -316,18 +315,6 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 	ethpbv1alpha1.RegisterNodeServer(s.grpcServer, nodeServer)
 	ethpbv1alpha1.RegisterHealthServer(s.grpcServer, nodeServer)
 	ethpbv1alpha1.RegisterBeaconChainServer(s.grpcServer, beaconChainServer)
-	if s.cfg.EnableDebugRPCEndpoints {
-		debugServer := &debugv1alpha1.Server{
-			GenesisTimeFetcher: s.cfg.GenesisTimeFetcher,
-			BeaconDB:           s.cfg.BeaconDB,
-			StateGen:           s.cfg.StateGen,
-			HeadFetcher:        s.cfg.HeadFetcher,
-			PeerManager:        s.cfg.PeerManager,
-			PeersFetcher:       s.cfg.PeersFetcher,
-			ReplayerBuilder:    ch,
-		}
-		ethpbv1alpha1.RegisterDebugServer(s.grpcServer, debugServer)
-	}
 	ethpbv1alpha1.RegisterBeaconNodeValidatorServer(s.grpcServer, validatorServer)
 	// Register reflection service on gRPC server.
 	reflection.Register(s.grpcServer)

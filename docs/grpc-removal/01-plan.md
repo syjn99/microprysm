@@ -25,10 +25,14 @@
 - Remove those with zero callers
 - **Risk:** Low — requires careful audit
 
-### PR 1.3: Delete dead gRPC debug APIs
+### PR 1.3: Delete dead gRPC debug APIs ✅
 **Scope:** Audit Debug service RPCs
-- Check: GetBeaconState, GetBlock, SetLoggingLevel, ListPeers, GetPeer
-- Remove unused RPCs and implementations
+- Audited: GetBeaconState, GetBlock, SetLoggingLevel, ListPeers, GetPeer
+- All 5 RPCs confirmed to have zero gRPC callers (E2E uses REST equivalents)
+- Removed entire `service Debug` block from `proto/prysm/v1alpha1/debug.proto`
+- Deleted `beacon-chain/rpc/prysm/v1alpha1/debug/` directory (server, implementations, tests)
+- Removed debug server registration from `beacon-chain/rpc/service.go`
+- Regenerated proto stubs
 - **Risk:** Low
 
 ---
