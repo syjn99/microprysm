@@ -66,13 +66,21 @@ func validatorsAreActive(ec *types.EvaluationContext, nodeURLs ...string) error 
 	}
 	ctx := context.Background()
 
-	validatorsResp, err := client.ListValidators(ctx, "head", "active")
+	validatorsResp, err := client.ListValidators(ctx, "head")
 	if err != nil {
 		return errors.Wrap(err, "failed to get validators")
 	}
 
+	// Filter to active validators only.
+	var activeValidators []*structs.ValidatorContainer
+	for _, v := range validatorsResp.Data {
+		if strings.HasPrefix(v.Status, "active") {
+			activeValidators = append(activeValidators, v)
+		}
+	}
+
 	// Count should be MinGenesisActiveValidatorCount minus any validators that have exited.
-	receivedCount := uint64(len(validatorsResp.Data))
+	receivedCount := uint64(len(activeValidators))
 	maxExpected := params.BeaconConfig().MinGenesisActiveValidatorCount
 	minExpected := maxExpected - uint64(len(ec.ExitedVals))
 
@@ -88,7 +96,7 @@ func validatorsAreActive(ec *types.EvaluationContext, nodeURLs ...string) error 
 	exitEpochWrongCount := 0
 	withdrawEpochWrongCount := 0
 	farFutureEpoch := strconv.FormatUint(uint64(params.BeaconConfig().FarFutureEpoch), 10)
-	for _, item := range validatorsResp.Data {
+	for _, item := range activeValidators {
 		pk, err := hex.DecodeString(strings.TrimPrefix(item.Validator.Pubkey, "0x"))
 		if err != nil {
 			return errors.Wrap(err, "failed to decode validator pubkey")
