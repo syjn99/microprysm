@@ -208,7 +208,7 @@ func (c *client) getGenesis(ctx context.Context) (*genesisData, error) {
 		return nil, errors.Wrap(err, "could not decode genesis validators root")
 	}
 	return &genesisData{
-		GenesisTime:           time.Unix(int64(genesisTimeSec), 0),
+		GenesisTime:           time.Unix(int64(genesisTimeSec), 0), // lint:ignore uintcast -- Genesis time will never exceed int64 in seconds.
 		GenesisValidatorsRoot: bytesutil.ToBytes32(valsRoot),
 	}, nil
 }
@@ -218,6 +218,9 @@ func (c *client) getChainHead(ctx context.Context) (*chainHead, error) {
 	var headerResp structs.GetBlockHeaderResponse
 	if err := c.getJSON(ctx, "/eth/v1/beacon/headers/head", &headerResp); err != nil {
 		return nil, errors.Wrap(err, "could not get head header")
+	}
+	if headerResp.Data == nil || headerResp.Data.Header == nil || headerResp.Data.Header.Message == nil {
+		return nil, errors.New("head header response has nil fields")
 	}
 	headSlot, err := strconv.ParseUint(headerResp.Data.Header.Message.Slot, 10, 64)
 	if err != nil {
@@ -231,6 +234,9 @@ func (c *client) getChainHead(ctx context.Context) (*chainHead, error) {
 	var cpResp structs.GetFinalityCheckpointsResponse
 	if err := c.getJSON(ctx, "/eth/v1/beacon/states/head/finality_checkpoints", &cpResp); err != nil {
 		return nil, errors.Wrap(err, "could not get finality checkpoints")
+	}
+	if cpResp.Data == nil || cpResp.Data.Finalized == nil {
+		return nil, errors.New("finality checkpoints response has nil fields")
 	}
 	finalizedEpoch, err := strconv.ParseUint(cpResp.Data.Finalized.Epoch, 10, 64)
 	if err != nil {
