@@ -16,7 +16,6 @@ import (
 	validatorHelpers "github.com/OffchainLabs/prysm/v7/validator/helpers"
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager"
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager/derived"
-	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
@@ -71,16 +70,19 @@ type CLIManager struct {
 }
 
 func (acm *CLIManager) prepareBeaconClients(ctx context.Context) (*iface.ValidatorClient, *iface.NodeClient, error) {
-	if acm.dialOpts == nil {
-		return nil, nil, errors.New("failed to construct dial options for beacon clients")
+	if acm.grpcHeaders != nil {
+		ctx = grpcutil.AppendHeaders(ctx, acm.grpcHeaders)
 	}
 
-	ctx = grpcutil.AppendHeaders(ctx, acm.grpcHeaders)
+	var connOpts []validatorHelpers.NodeConnectionOption
+	if acm.dialOpts != nil {
+		connOpts = append(connOpts, validatorHelpers.WithGRPC(ctx, acm.beaconRPCProvider, acm.dialOpts))
+	}
+	if acm.beaconApiEndpoint != "" {
+		connOpts = append(connOpts, validatorHelpers.WithREST(acm.beaconApiEndpoint, rest.WithHttpTimeout(acm.beaconApiTimeout)))
+	}
 
-	conn, err := validatorHelpers.NewNodeConnection(
-		validatorHelpers.WithGRPC(ctx, acm.beaconRPCProvider, acm.dialOpts),
-		validatorHelpers.WithREST(acm.beaconApiEndpoint, rest.WithHttpTimeout(acm.beaconApiTimeout)),
-	)
+	conn, err := validatorHelpers.NewNodeConnection(connOpts...)
 	if err != nil {
 		return nil, nil, err
 	}

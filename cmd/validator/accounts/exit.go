@@ -2,36 +2,26 @@ package accounts
 
 import (
 	"io"
-	"strings"
+	"time"
 
-	grpcutil "github.com/OffchainLabs/prysm/v7/api/grpc"
-	"github.com/OffchainLabs/prysm/v7/cmd"
+	"github.com/OffchainLabs/prysm/v7/api/rest"
+	"github.com/OffchainLabs/prysm/v7/api/server/structs"
 	"github.com/OffchainLabs/prysm/v7/cmd/validator/flags"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts/wallet"
-	"github.com/OffchainLabs/prysm/v7/validator/client"
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager"
 	"github.com/OffchainLabs/prysm/v7/validator/keymanager/local"
 	"github.com/OffchainLabs/prysm/v7/validator/node"
-	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-	"google.golang.org/grpc"
 )
 
 func Exit(c *cli.Context, r io.Reader) error {
 	var w *wallet.Wallet
 	var km keymanager.IKeymanager
 	var err error
-	dialOpts := client.ConstructDialOptions(
-		c.Int(cmd.GrpcMaxCallRecvMsgSizeFlag.Name),
-		c.String(flags.CertFlag.Name),
-		c.Uint(flags.GRPCRetriesFlag.Name),
-		c.Duration(flags.GRPCRetryDelayFlag.Name),
-	)
-	grpcHeaders := strings.Split(c.String(flags.GRPCHeadersFlag.Name), ",")
-	beaconRPCProvider := c.String(flags.BeaconRPCProviderFlag.Name)
+	beaconApiEndpoint := c.String(flags.BeaconRESTApiProviderFlag.Name)
 	if !c.IsSet(flags.Web3SignerURLFlag.Name) && !c.IsSet(flags.WalletDirFlag.Name) && !c.IsSet(flags.InteropNumValidators.Name) {
 		return errors.Errorf("No validators found, please provide a prysm wallet directory via flag --%s "+
 			"or a remote signer location with corresponding public keys via flags --%s and --%s ",
@@ -47,24 +37,30 @@ func Exit(c *cli.Context, r io.Reader) error {
 		}
 		w = &wallet.Wallet{}
 	} else if c.IsSet(flags.Web3SignerURLFlag.Name) {
-		ctx := grpcutil.AppendHeaders(c.Context, grpcHeaders)
-		conn, err := grpc.DialContext(ctx, beaconRPCProvider, dialOpts...)
+		// Fetch genesis info via REST API to get genesis_validators_root.
+		restProvider, err := rest.NewRestConnectionProvider(
+			beaconApiEndpoint,
+			rest.WithHttpTimeout(time.Second*30),
+		)
 		if err != nil {
-			return errors.Wrapf(err, "could not dial endpoint %s", beaconRPCProvider)
+			return errors.Wrapf(err, "could not create REST connection to %s", beaconApiEndpoint)
 		}
-		nodeClient := ethpb.NewNodeClient(conn)
-		resp, err := nodeClient.GetGenesis(c.Context, &empty.Empty{})
+		genesisResp := &structs.GetGenesisResponse{}
+		if err := restProvider.Handler().Get(c.Context, "/eth/v1/beacon/genesis", genesisResp); err != nil {
+			return errors.Wrap(err, "failed to get genesis info")
+		}
+		if genesisResp.Data == nil {
+			return errors.New("genesis data is nil")
+		}
+		genesisValidatorsRoot, err := hexutil.Decode(genesisResp.Data.GenesisValidatorsRoot)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get genesis info")
-		}
-		if err := conn.Close(); err != nil {
-			log.WithError(err).Error("Failed to close connection")
+			return errors.Wrap(err, "failed to decode genesis validators root")
 		}
 		config, err := node.Web3SignerConfig(c)
 		if err != nil {
 			return errors.Wrapf(err, "could not configure remote signer")
 		}
-		config.GenesisValidatorsRoot = resp.GenesisValidatorsRoot
+		config.GenesisValidatorsRoot = genesisValidatorsRoot
 		w, km, err = walletWithWeb3SignerKeymanager(c, config)
 		if err != nil {
 			return err
@@ -79,10 +75,7 @@ func Exit(c *cli.Context, r io.Reader) error {
 	opts := []accounts.Option{
 		accounts.WithWallet(w),
 		accounts.WithKeymanager(km),
-		accounts.WithGRPCDialOpts(dialOpts),
-		accounts.WithBeaconRPCProvider(beaconRPCProvider),
-		accounts.WithBeaconRESTApiProvider(c.String(flags.BeaconRESTApiProviderFlag.Name)),
-		accounts.WithGRPCHeaders(grpcHeaders),
+		accounts.WithBeaconRESTApiProvider(beaconApiEndpoint),
 		accounts.WithExitJSONOutputPath(c.String(flags.VoluntaryExitJSONOutputPathFlag.Name)),
 	}
 	// Get full set of public keys from the keymanager.

@@ -10,7 +10,7 @@
 
 ## Phase 1: Dead Code Cleanup (Low Risk)
 
-### PR 1.1: Delete dead gRPC attestation APIs
+### PR 1.1: Delete dead gRPC attestation APIs — [PR #7](https://github.com/syjn99/microprysm/pull/7)
 **Scope:** Mirrors upstream #16410
 - Remove unused RPCs from `beacon_chain.proto`: ListAttestations, ListAttestationsElectra, ListIndexedAttestations, ListIndexedAttestationsElectra, AttestationPool, AttestationPoolElectra
 - Remove corresponding implementations in `beacon-chain/rpc/prysm/v1alpha1/beacon/attestations.go`
@@ -18,44 +18,40 @@
 - Regenerate proto stubs
 - **Risk:** None — these are confirmed unused
 
-### PR 1.2: Delete dead gRPC beacon chain APIs
+### PR 1.2: Delete dead gRPC beacon chain APIs — [PR #10](https://github.com/syjn99/microprysm/pull/10)
 **Scope:** Audit remaining BeaconChain service RPCs for unused ones
 - Candidates: ListBlocks, ListBlocksElectra, GetChainHead, GetValidatorParticipation, GetWeakSubjectivity
 - Check if each has callers (gRPC client code, E2E, CLI tools)
 - Remove those with zero callers
 - **Risk:** Low — requires careful audit
 
-### PR 1.3: Delete dead gRPC debug APIs ✅
+### PR 1.3: Delete dead gRPC debug APIs ✅ — [PR #8](https://github.com/syjn99/microprysm/pull/8)
 **Scope:** Audit Debug service RPCs
-- Audited: GetBeaconState, GetBlock, SetLoggingLevel, ListPeers, GetPeer
-- All 5 RPCs confirmed to have zero gRPC callers (E2E uses REST equivalents)
-- Removed entire `service Debug` block from `proto/prysm/v1alpha1/debug.proto`
-- Deleted `beacon-chain/rpc/prysm/v1alpha1/debug/` directory (server, implementations, tests)
-- Removed debug server registration from `beacon-chain/rpc/service.go`
-- Regenerated proto stubs
+- Check: GetBeaconState, GetBlock, SetLoggingLevel, ListPeers, GetPeer
+- Remove unused RPCs and implementations
 - **Risk:** Low
 
 ---
 
 ## Phase 2: Remove gRPC from CLI Tools (Low Risk)
 
-### PR 2.1: Remove gRPC from tools/forkchecker
+### PR 2.1: Remove gRPC from tools/forkchecker ✅ — [PR #5](https://github.com/syjn99/microprysm/pull/5)
 **Scope:** `tools/forkchecker/forkchecker.go`
 - This tool uses `grpc.Dial()` to connect to a beacon node
 - Option A: Rewrite to use REST API
 - Option B: Delete the tool if no longer needed (likely — it's a debugging tool)
 - **Risk:** None — standalone tool
 
-### PR 2.2: Remove gRPC from cmd/prysmctl/p2p
+### PR 2.2: Remove gRPC from cmd/prysmctl/p2p ✅ — [PR #6](https://github.com/syjn99/microprysm/pull/6)
 **Scope:** `cmd/prysmctl/p2p/client.go`
 - Uses `grpc.Dial()` for p2p debugging
 - Rewrite to use REST debug endpoints or remove if unused
 - **Risk:** Low — CLI debugging tool
 
-### PR 2.3: Remove gRPC from cmd/validator/accounts/exit
+### PR 2.3: Remove gRPC from cmd/validator/accounts/exit ✅ — [PR #9](https://github.com/syjn99/microprysm/pull/9)
 **Scope:** `cmd/validator/accounts/exit.go`
-- Uses `grpc.DialContext()` for voluntary exit
-- Rewrite to use REST API (`/eth/v1/beacon/pool/voluntary_exits`)
+- ~~Uses `grpc.DialContext()` for voluntary exit~~
+- Rewritten to use REST API (`/eth/v1/beacon/genesis` for genesis info, REST connection provider for exit submission)
 - **Risk:** Low — single endpoint migration
 
 ---
