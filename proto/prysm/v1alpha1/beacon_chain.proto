@@ -127,21 +127,6 @@ service BeaconChain {
     };
   }
 
-  // Retrieve blocks by root, slot, or epoch.
-  //
-  // The server may return multiple blocks in the case that a slot or epoch is
-  // provided as the filter criteria. The server may return an empty list when
-  // no blocks in their database match the filter criteria. This RPC should
-  // not return NOT_FOUND. Only one filter criteria should be used. This
-  // endpoint allows for retrieval of genesis information via a boolean query
-  // filter.
-  rpc ListBeaconBlocks(ListBlocksRequest) returns (ListBeaconBlocksResponse) {
-    option deprecated = true;
-    option (google.api.http) = {
-      get : "/eth/v1alpha2/beacon/blocks"
-    };
-  }
-
   // Retrieve information about the head of the beacon chain from the view of
   // the beacon chain node.
   //

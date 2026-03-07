@@ -18,12 +18,16 @@
 - Regenerate proto stubs
 - **Risk:** None — these are confirmed unused
 
-### PR 1.2: Delete dead gRPC beacon chain APIs
+### PR 1.2: Delete dead gRPC beacon chain APIs ✅
 **Scope:** Audit remaining BeaconChain service RPCs for unused ones
-- Candidates: ListBlocks, ListBlocksElectra, GetChainHead, GetValidatorParticipation, GetWeakSubjectivity
-- Check if each has callers (gRPC client code, E2E, CLI tools)
-- Remove those with zero callers
-- **Risk:** Low — requires careful audit
+- Audited candidates: ListBeaconBlocks, GetChainHead, GetValidatorParticipation, GetWeakSubjectivity
+- ListBlocksElectra does not exist in the proto; GetWeakSubjectivity is REST-only (not a gRPC RPC)
+- GetChainHead: active callers in prysmctl/p2p, forkchecker, validator grpc-api → kept
+- GetValidatorParticipation: active callers in forkchecker → kept
+- ListBeaconBlocks: zero callers confirmed → removed RPC, server implementation, and tests
+- Removed `ListBeaconBlocks` mock from `testing/mock/beacon_service_mock.go`
+- Regenerated proto stubs, updated BUILD.bazel via gazelle
+- **Risk:** Low — only removed RPC with zero callers
 
 ### PR 1.3: Delete dead gRPC debug APIs
 **Scope:** Audit Debug service RPCs
