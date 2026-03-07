@@ -35,5 +35,6 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
         run: |
           bazel test \
+            --host_jvm_args=-Xmx4g \
             --config=unit-test \
             -- //... -//testing/endtoend/...
