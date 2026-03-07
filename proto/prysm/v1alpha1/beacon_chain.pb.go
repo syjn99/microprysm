@@ -3823,10 +3823,6 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type BeaconChainClient interface {
 	// Deprecated: Do not use.
-	ListBeaconBlocks(ctx context.Context, in *ListBlocksRequest, opts ...grpc.CallOption) (*ListBeaconBlocksResponse, error)
-	// Deprecated: Do not use.
-	GetChainHead(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ChainHead, error)
-	// Deprecated: Do not use.
 	ListBeaconCommittees(ctx context.Context, in *ListCommitteesRequest, opts ...grpc.CallOption) (*BeaconCommittees, error)
 	// Deprecated: Do not use.
 	ListValidatorBalances(ctx context.Context, in *ListValidatorBalancesRequest, opts ...grpc.CallOption) (*ValidatorBalances, error)
@@ -3842,8 +3838,6 @@ type BeaconChainClient interface {
 	GetValidatorPerformance(ctx context.Context, in *ValidatorPerformanceRequest, opts ...grpc.CallOption) (*ValidatorPerformanceResponse, error)
 	// Deprecated: Do not use.
 	ListValidatorAssignments(ctx context.Context, in *ListValidatorAssignmentsRequest, opts ...grpc.CallOption) (*ValidatorAssignments, error)
-	// Deprecated: Do not use.
-	GetValidatorParticipation(ctx context.Context, in *GetValidatorParticipationRequest, opts ...grpc.CallOption) (*ValidatorParticipationResponse, error)
 	// Deprecated: Do not use.
 	GetBeaconConfig(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BeaconConfig, error)
 	// Deprecated: Do not use.
@@ -3862,26 +3856,6 @@ type beaconChainClient struct {
 
 func NewBeaconChainClient(cc grpc.ClientConnInterface) BeaconChainClient {
 	return &beaconChainClient{cc}
-}
-
-// Deprecated: Do not use.
-func (c *beaconChainClient) ListBeaconBlocks(ctx context.Context, in *ListBlocksRequest, opts ...grpc.CallOption) (*ListBeaconBlocksResponse, error) {
-	out := new(ListBeaconBlocksResponse)
-	err := c.cc.Invoke(ctx, "/ethereum.eth.v1alpha1.BeaconChain/ListBeaconBlocks", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Deprecated: Do not use.
-func (c *beaconChainClient) GetChainHead(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ChainHead, error) {
-	out := new(ChainHead)
-	err := c.cc.Invoke(ctx, "/ethereum.eth.v1alpha1.BeaconChain/GetChainHead", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 // Deprecated: Do not use.
@@ -3965,16 +3939,6 @@ func (c *beaconChainClient) ListValidatorAssignments(ctx context.Context, in *Li
 }
 
 // Deprecated: Do not use.
-func (c *beaconChainClient) GetValidatorParticipation(ctx context.Context, in *GetValidatorParticipationRequest, opts ...grpc.CallOption) (*ValidatorParticipationResponse, error) {
-	out := new(ValidatorParticipationResponse)
-	err := c.cc.Invoke(ctx, "/ethereum.eth.v1alpha1.BeaconChain/GetValidatorParticipation", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Deprecated: Do not use.
 func (c *beaconChainClient) GetBeaconConfig(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*BeaconConfig, error) {
 	out := new(BeaconConfig)
 	err := c.cc.Invoke(ctx, "/ethereum.eth.v1alpha1.BeaconChain/GetBeaconConfig", in, out, opts...)
@@ -4027,10 +3991,6 @@ func (c *beaconChainClient) GetIndividualVotes(ctx context.Context, in *Individu
 // BeaconChainServer is the server API for BeaconChain service.
 type BeaconChainServer interface {
 	// Deprecated: Do not use.
-	ListBeaconBlocks(context.Context, *ListBlocksRequest) (*ListBeaconBlocksResponse, error)
-	// Deprecated: Do not use.
-	GetChainHead(context.Context, *emptypb.Empty) (*ChainHead, error)
-	// Deprecated: Do not use.
 	ListBeaconCommittees(context.Context, *ListCommitteesRequest) (*BeaconCommittees, error)
 	// Deprecated: Do not use.
 	ListValidatorBalances(context.Context, *ListValidatorBalancesRequest) (*ValidatorBalances, error)
@@ -4047,8 +4007,6 @@ type BeaconChainServer interface {
 	// Deprecated: Do not use.
 	ListValidatorAssignments(context.Context, *ListValidatorAssignmentsRequest) (*ValidatorAssignments, error)
 	// Deprecated: Do not use.
-	GetValidatorParticipation(context.Context, *GetValidatorParticipationRequest) (*ValidatorParticipationResponse, error)
-	// Deprecated: Do not use.
 	GetBeaconConfig(context.Context, *emptypb.Empty) (*BeaconConfig, error)
 	// Deprecated: Do not use.
 	SubmitAttesterSlashing(context.Context, *AttesterSlashing) (*SubmitSlashingResponse, error)
@@ -4064,12 +4022,6 @@ type BeaconChainServer interface {
 type UnimplementedBeaconChainServer struct {
 }
 
-func (*UnimplementedBeaconChainServer) ListBeaconBlocks(context.Context, *ListBlocksRequest) (*ListBeaconBlocksResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListBeaconBlocks not implemented")
-}
-func (*UnimplementedBeaconChainServer) GetChainHead(context.Context, *emptypb.Empty) (*ChainHead, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetChainHead not implemented")
-}
 func (*UnimplementedBeaconChainServer) ListBeaconCommittees(context.Context, *ListCommitteesRequest) (*BeaconCommittees, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListBeaconCommittees not implemented")
 }
@@ -4094,9 +4046,6 @@ func (*UnimplementedBeaconChainServer) GetValidatorPerformance(context.Context, 
 func (*UnimplementedBeaconChainServer) ListValidatorAssignments(context.Context, *ListValidatorAssignmentsRequest) (*ValidatorAssignments, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListValidatorAssignments not implemented")
 }
-func (*UnimplementedBeaconChainServer) GetValidatorParticipation(context.Context, *GetValidatorParticipationRequest) (*ValidatorParticipationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetValidatorParticipation not implemented")
-}
 func (*UnimplementedBeaconChainServer) GetBeaconConfig(context.Context, *emptypb.Empty) (*BeaconConfig, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBeaconConfig not implemented")
 }
@@ -4115,42 +4064,6 @@ func (*UnimplementedBeaconChainServer) GetIndividualVotes(context.Context, *Indi
 
 func RegisterBeaconChainServer(s *grpc.Server, srv BeaconChainServer) {
 	s.RegisterService(&_BeaconChain_serviceDesc, srv)
-}
-
-func _BeaconChain_ListBeaconBlocks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListBlocksRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BeaconChainServer).ListBeaconBlocks(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ethereum.eth.v1alpha1.BeaconChain/ListBeaconBlocks",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BeaconChainServer).ListBeaconBlocks(ctx, req.(*ListBlocksRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BeaconChain_GetChainHead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BeaconChainServer).GetChainHead(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ethereum.eth.v1alpha1.BeaconChain/GetChainHead",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BeaconChainServer).GetChainHead(ctx, req.(*emptypb.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _BeaconChain_ListBeaconCommittees_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -4297,24 +4210,6 @@ func _BeaconChain_ListValidatorAssignments_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BeaconChain_GetValidatorParticipation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetValidatorParticipationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BeaconChainServer).GetValidatorParticipation(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ethereum.eth.v1alpha1.BeaconChain/GetValidatorParticipation",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BeaconChainServer).GetValidatorParticipation(ctx, req.(*GetValidatorParticipationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _BeaconChain_GetBeaconConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
@@ -4410,14 +4305,6 @@ var _BeaconChain_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*BeaconChainServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListBeaconBlocks",
-			Handler:    _BeaconChain_ListBeaconBlocks_Handler,
-		},
-		{
-			MethodName: "GetChainHead",
-			Handler:    _BeaconChain_GetChainHead_Handler,
-		},
-		{
 			MethodName: "ListBeaconCommittees",
 			Handler:    _BeaconChain_ListBeaconCommittees_Handler,
 		},
@@ -4448,10 +4335,6 @@ var _BeaconChain_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListValidatorAssignments",
 			Handler:    _BeaconChain_ListValidatorAssignments_Handler,
-		},
-		{
-			MethodName: "GetValidatorParticipation",
-			Handler:    _BeaconChain_GetValidatorParticipation_Handler,
 		},
 		{
 			MethodName: "GetBeaconConfig",

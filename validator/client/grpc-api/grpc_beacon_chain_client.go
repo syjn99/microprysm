@@ -2,6 +2,7 @@ package grpc_api
 
 import (
 	"context"
+	"errors"
 
 	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/validator/client/iface"
@@ -13,8 +14,8 @@ type grpcChainClient struct {
 	*grpcClientManager[ethpb.BeaconChainClient]
 }
 
-func (c *grpcChainClient) ChainHead(ctx context.Context, in *empty.Empty) (*ethpb.ChainHead, error) {
-	return c.getClient().GetChainHead(ctx, in)
+func (c *grpcChainClient) ChainHead(_ context.Context, _ *empty.Empty) (*ethpb.ChainHead, error) {
+	return nil, errors.New("GetChainHead gRPC RPC removed; use REST API")
 }
 
 func (c *grpcChainClient) ValidatorBalances(ctx context.Context, in *ethpb.ListValidatorBalancesRequest) (*ethpb.ValidatorBalances, error) {
@@ -33,8 +34,8 @@ func (c *grpcChainClient) ValidatorPerformance(ctx context.Context, in *ethpb.Va
 	return c.getClient().GetValidatorPerformance(ctx, in)
 }
 
-func (c *grpcChainClient) ValidatorParticipation(ctx context.Context, in *ethpb.GetValidatorParticipationRequest) (*ethpb.ValidatorParticipationResponse, error) {
-	return c.getClient().GetValidatorParticipation(ctx, in)
+func (c *grpcChainClient) ValidatorParticipation(_ context.Context, _ *ethpb.GetValidatorParticipationRequest) (*ethpb.ValidatorParticipationResponse, error) {
+	return nil, errors.New("GetValidatorParticipation gRPC RPC removed; use REST API")
 }
 
 // NewGrpcChainClient creates a new gRPC chain client that supports

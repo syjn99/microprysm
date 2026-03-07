@@ -21,7 +21,9 @@
 ### PR 1.2: Delete dead gRPC beacon chain APIs — [PR #10](https://github.com/syjn99/microprysm/pull/10)
 **Scope:** Audit remaining BeaconChain service RPCs for unused ones
 - ~~ListBlocks, ListBlocksElectra~~ ✅ (removed in PR #10)
-- Remaining candidates: GetChainHead, GetValidatorParticipation, GetWeakSubjectivity
+- ~~GetChainHead~~ ✅ (removed in PR #10)
+- ~~GetValidatorParticipation~~ ✅ (removed in PR #10)
+- Remaining candidate: GetWeakSubjectivity
 - Check if each has callers (gRPC client code, E2E, CLI tools)
 - Remove those with zero callers
 - **Risk:** Low — requires careful audit
