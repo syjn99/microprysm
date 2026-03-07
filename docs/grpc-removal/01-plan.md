@@ -10,25 +10,28 @@
 
 ## Phase 1: Dead Code Cleanup (Low Risk)
 
-### PR 1.1: Delete dead gRPC attestation APIs — [PR #7](https://github.com/syjn99/microprysm/pull/7)
+### PR 1.1: Delete dead gRPC attestation APIs ✅ — [PR #7](https://github.com/syjn99/microprysm/pull/7)
 **Scope:** Mirrors upstream #16410
-- Remove unused RPCs from `beacon_chain.proto`: ListAttestations, ListAttestationsElectra, ListIndexedAttestations, ListIndexedAttestationsElectra, AttestationPool, AttestationPoolElectra
-- Remove corresponding implementations in `beacon-chain/rpc/prysm/v1alpha1/beacon/attestations.go`
-- Remove related test code
-- Regenerate proto stubs
+- ~~Remove unused RPCs from `beacon_chain.proto`~~ ✅
+- ~~Remove corresponding implementations in `beacon-chain/rpc/prysm/v1alpha1/beacon/attestations.go`~~ ✅
+- ~~Remove related test code~~ ✅
+- ~~Regenerate proto stubs~~ ✅
 - **Risk:** None — these are confirmed unused
 
 ### PR 1.2: Delete dead gRPC beacon chain APIs — [PR #10](https://github.com/syjn99/microprysm/pull/10)
 **Scope:** Audit remaining BeaconChain service RPCs for unused ones
-- Candidates: ListBlocks, ListBlocksElectra, GetChainHead, GetValidatorParticipation, GetWeakSubjectivity
+- ~~ListBlocks, ListBlocksElectra~~ ✅ (removed in PR #10)
+- Remaining candidates: GetChainHead, GetValidatorParticipation, GetWeakSubjectivity
 - Check if each has callers (gRPC client code, E2E, CLI tools)
 - Remove those with zero callers
 - **Risk:** Low — requires careful audit
 
 ### PR 1.3: Delete dead gRPC debug APIs ✅ — [PR #8](https://github.com/syjn99/microprysm/pull/8)
 **Scope:** Audit Debug service RPCs
-- Check: GetBeaconState, GetBlock, SetLoggingLevel, ListPeers, GetPeer
-- Remove unused RPCs and implementations
+- ~~Check: GetBeaconState, GetBlock, SetLoggingLevel, ListPeers, GetPeer~~ ✅
+- ~~Remove unused RPCs and implementations~~ ✅ (entire `debug/` directory deleted)
+- ~~Removed `service Debug` block from `debug.proto`~~ ✅
+- ~~Unregistered debug service from `rpc/service.go`~~ ✅
 - **Risk:** Low
 
 ---
@@ -44,8 +47,8 @@
 
 ### PR 2.2: Remove gRPC from cmd/prysmctl/p2p ✅ — [PR #6](https://github.com/syjn99/microprysm/pull/6)
 **Scope:** `cmd/prysmctl/p2p/client.go`
-- Uses `grpc.Dial()` for p2p debugging
-- Rewrite to use REST debug endpoints or remove if unused
+- ~~Uses `grpc.Dial()` for p2p debugging~~ ✅
+- ~~Rewritten to use REST debug endpoints~~ ✅
 - **Risk:** Low — CLI debugging tool
 
 ### PR 2.3: Remove gRPC from cmd/validator/accounts/exit ✅ — [PR #9](https://github.com/syjn99/microprysm/pull/9)
