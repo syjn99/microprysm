@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/OffchainLabs/prysm/v7/api/client"
 	"github.com/OffchainLabs/prysm/v7/api/server/structs"
@@ -133,7 +134,11 @@ func (b *BeaconNodeClient) GetBlockSSZ(ctx context.Context, blockID string) ([]b
 
 // ListValidators returns validators from /eth/v1/beacon/states/{stateID}/validators.
 func (b *BeaconNodeClient) ListValidators(ctx context.Context, stateID string, statuses ...string) (*structs.GetValidatorsResponse, error) {
-	body, err := b.c.Get(ctx, fmt.Sprintf("/eth/v1/beacon/states/%s/validators", stateID))
+	var opts []client.ReqOption
+	if len(statuses) > 0 {
+		opts = append(opts, client.WithQueryParam("status", strings.Join(statuses, ",")))
+	}
+	body, err := b.c.Get(ctx, fmt.Sprintf("/eth/v1/beacon/states/%s/validators", stateID), opts...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list validators for state %s", stateID)
 	}
