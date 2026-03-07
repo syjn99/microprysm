@@ -1,15 +1,11 @@
 package accounts
 
 import (
-	"strings"
-
-	"github.com/OffchainLabs/prysm/v7/cmd"
 	"github.com/OffchainLabs/prysm/v7/cmd/validator/flags"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts/iface"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts/userprompt"
 	"github.com/OffchainLabs/prysm/v7/validator/accounts/wallet"
-	"github.com/OffchainLabs/prysm/v7/validator/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -24,21 +20,10 @@ func accountsImport(c *cli.Context) error {
 		return err
 	}
 
-	dialOpts := client.ConstructDialOptions(
-		c.Int(cmd.GrpcMaxCallRecvMsgSizeFlag.Name),
-		c.String(flags.CertFlag.Name),
-		c.Uint(flags.GRPCRetriesFlag.Name),
-		c.Duration(flags.GRPCRetryDelayFlag.Name),
-	)
-	grpcHeaders := strings.Split(c.String(flags.GRPCHeadersFlag.Name), ",")
-
 	opts := []accounts.Option{
 		accounts.WithWallet(w),
 		accounts.WithKeymanager(km),
-		accounts.WithGRPCDialOpts(dialOpts),
-		accounts.WithBeaconRPCProvider(c.String(flags.BeaconRPCProviderFlag.Name)),
 		accounts.WithBeaconRESTApiProvider(c.String(flags.BeaconRESTApiProviderFlag.Name)),
-		accounts.WithGRPCHeaders(grpcHeaders),
 	}
 
 	opts = append(opts, accounts.WithImportPrivateKeys(c.IsSet(flags.ImportPrivateKeyFileFlag.Name)))
