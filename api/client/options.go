@@ -53,3 +53,12 @@ func WithMaxBodySize(size int64) ClientOpt {
 		c.maxBodySize = size
 	}
 }
+
+// WithQueryParam adds a query parameter to the request URL.
+func WithQueryParam(key, value string) ReqOption {
+	return func(req *http.Request) {
+		q := req.URL.Query()
+		q.Add(key, value)
+		req.URL.RawQuery = q.Encode()
+	}
+}

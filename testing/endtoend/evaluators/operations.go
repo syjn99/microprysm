@@ -3,8 +3,11 @@ package evaluators
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/OffchainLabs/prysm/v7/api/client/beacon"
@@ -13,7 +16,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/core/signing"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/state"
 	"github.com/OffchainLabs/prysm/v7/config/params"
-	"github.com/OffchainLabs/prysm/v7/consensus-types/blocks"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
 	"github.com/OffchainLabs/prysm/v7/encoding/ssz/detect"
@@ -24,11 +26,10 @@ import (
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	e2etypes "github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/testing/util"
+	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/rand"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var depositValCount = e2e.DepositCount
@@ -197,34 +198,75 @@ func (m mismatch) String() string {
 	return fmt.Sprintf("(%#x:%d:%d)", m.k, m.e, m.o)
 }
 
-func processesDepositsInBlocks(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
+// depositBlockMsg is a minimal struct for parsing deposit data from any block version.
+type depositBlockMsg struct {
+	Body struct {
+		Deposits []depositEntry `json:"deposits"`
+	} `json:"body"`
+}
+
+type depositEntry struct {
+	Data struct {
+		Pubkey string `json:"pubkey"`
+		Amount string `json:"amount"`
+	} `json:"data"`
+}
+
+// graffitiBlockMsg is a minimal struct for parsing graffiti from any block version.
+type graffitiBlockMsg struct {
+	Slot string `json:"slot"`
+	Body struct {
+		Graffiti string `json:"graffiti"`
+	} `json:"body"`
+}
+
+// eth1VoteBlockMsg is a minimal struct for parsing eth1data vote from any block version.
+type eth1VoteBlockMsg struct {
+	Slot string `json:"slot"`
+	Body struct {
+		Eth1Data struct {
+			BlockHash string `json:"block_hash"`
+		} `json:"eth1_data"`
+	} `json:"body"`
+}
+
+func processesDepositsInBlocks(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
 	expected := ec.Balances(e2etypes.PostGenesisDepositBatch)
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get chain head")
 	}
 
-	req := &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: chainHead.HeadEpoch - 1}}
-	blks, err := client.ListBeaconBlocks(context.Background(), req)
-	if err != nil {
-		return errors.Wrap(err, "failed to get blocks from beacon-chain")
-	}
+	epoch := chainHead.HeadEpoch - 1
 	observed := make(map[[48]byte]uint64)
-	for _, blk := range blks.BlockContainers {
-		sb, err := blocks.BeaconBlockContainerToSignedBeaconBlock(blk)
-		if err != nil {
-			return errors.Wrap(err, "failed to convert api response type to SignedBeaconBlock interface")
+	if err := iterateBlocksInEpoch(ctx, client, epoch, func(blockResp *structs.GetBlockV2Response, slot primitives.Slot) error {
+		var msg depositBlockMsg
+		if err := json.Unmarshal(blockResp.Data.Message, &msg); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal block message at slot %d", slot)
 		}
-		b := sb.Block()
-		deposits := b.Body().Deposits()
-		for _, d := range deposits {
-			k := bytesutil.ToBytes48(d.Data.PublicKey)
-			v := observed[k]
-			observed[k] = v + d.Data.Amount
+		for _, d := range msg.Body.Deposits {
+			pk, err := hex.DecodeString(strings.TrimPrefix(d.Data.Pubkey, "0x"))
+			if err != nil {
+				return errors.Wrap(err, "failed to decode deposit pubkey")
+			}
+			amount, err := strconv.ParseUint(d.Data.Amount, 10, 64)
+			if err != nil {
+				return errors.Wrap(err, "failed to parse deposit amount")
+			}
+			k := bytesutil.ToBytes48(pk)
+			observed[k] += amount
 		}
+		return nil
+	}); err != nil {
+		return err
 	}
+
 	var mismatches []string
 	for k, ev := range expected {
 		ov := observed[k]
@@ -238,102 +280,112 @@ func processesDepositsInBlocks(ec *e2etypes.EvaluationContext, conns ...*grpc.Cl
 	return nil
 }
 
-func verifyGraffitiInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+func verifyGraffitiInBlocks(_ *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get chain head")
 	}
 	begin := chainHead.HeadEpoch
-	// Prevent underflow when this runs at epoch 0.
 	if begin > 0 {
 		begin = begin.Sub(1)
 	}
-	req := &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: begin}}
-	blks, err := client.ListBeaconBlocks(context.Background(), req)
-	if err != nil {
-		return errors.Wrap(err, "failed to get blocks from beacon-chain")
-	}
-	for _, ctr := range blks.BlockContainers {
-		blk, err := blocks.BeaconBlockContainerToSignedBeaconBlock(ctr)
-		if err != nil {
-			return err
+
+	return iterateBlocksInEpoch(ctx, client, begin, func(blockResp *structs.GetBlockV2Response, slot primitives.Slot) error {
+		var msg graffitiBlockMsg
+		if err := json.Unmarshal(blockResp.Data.Message, &msg); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal block message at slot %d", slot)
 		}
+
+		parsedSlot, _ := strconv.ParseUint(msg.Slot, 10, 64)
+		graffitiHex := msg.Body.Graffiti
+		graffitiBytes, err := hex.DecodeString(strings.TrimPrefix(graffitiHex, "0x"))
+		if err != nil {
+			return errors.Wrap(err, "failed to decode graffiti")
+		}
+		graffitiTrimmed := bytes.TrimRight(graffitiBytes, "\x00")
 		var found bool
-		slot := blk.Block().Slot()
-		graffitiInBlock := blk.Block().Body().Graffiti()
-		// Trim trailing null bytes from graffiti.
-		// Example: "SushiGEabcdPRxxxx\x00\x00\x00..." becomes "SushiGEabcdPRxxxx"
-		graffitiTrimmed := bytes.TrimRight(graffitiInBlock[:], "\x00")
 		for _, graffiti := range helpers.Graffiti {
-			// Check prefix match since user graffiti comes first, with EL/CL version info appended after.
 			if bytes.HasPrefix(graffitiTrimmed, []byte(graffiti)) {
 				found = true
 				break
 			}
 		}
-		if !found && slot != 0 {
-			return fmt.Errorf("block at slot %d has graffiti %q which does not start with any expected graffiti", slot, string(graffitiTrimmed))
+		if !found && parsedSlot != 0 {
+			return fmt.Errorf("block at slot %d has graffiti %q which does not start with any expected graffiti", parsedSlot, string(graffitiTrimmed))
 		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
-func activatesDepositedValidators(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
+func activatesDepositedValidators(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
 
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get chain head")
 	}
 	epoch := chainHead.HeadEpoch
 
-	validators, err := getAllValidators(client)
+	validatorsResp, err := client.ListValidators(ctx, "head")
 	if err != nil {
 		return errors.Wrap(err, "failed to get validators")
 	}
 	expected := ec.Balances(e2etypes.PostGenesisDepositBatch)
+	farFutureEpoch := strconv.FormatUint(uint64(params.BeaconConfig().FarFutureEpoch), 10)
 
 	var deposits, lowBalance, wrongExit, wrongWithdraw int
-	for _, v := range validators {
-		key := bytesutil.ToBytes48(v.PublicKey)
+	for _, item := range validatorsResp.Data {
+		pk, err := hex.DecodeString(strings.TrimPrefix(item.Validator.Pubkey, "0x"))
+		if err != nil {
+			continue
+		}
+		key := bytesutil.ToBytes48(pk)
 		if _, ok := expected[key]; !ok {
 			continue
 		}
 		delete(expected, key)
-		// Validator can't be activated yet .
-		if v.ActivationEligibilityEpoch > chainHead.FinalizedEpoch {
+
+		activationEligibilityEpoch, _ := strconv.ParseUint(item.Validator.ActivationEligibilityEpoch, 10, 64)
+		activationEpoch, _ := strconv.ParseUint(item.Validator.ActivationEpoch, 10, 64)
+
+		// Validator can't be activated yet.
+		if primitives.Epoch(activationEligibilityEpoch) > chainHead.FinalizedEpoch {
 			continue
 		}
-		if v.ActivationEpoch < epoch {
+		if primitives.Epoch(activationEpoch) < epoch {
 			continue
 		}
-		if v.ActivationEpoch == epoch {
+		if primitives.Epoch(activationEpoch) == epoch {
 			deposits++
 		}
-		if v.EffectiveBalance < params.BeaconConfig().MaxEffectiveBalance {
+		effBalance, _ := strconv.ParseUint(item.Validator.EffectiveBalance, 10, 64)
+		if effBalance < params.BeaconConfig().MaxEffectiveBalance {
 			lowBalance++
 		}
-		if v.ExitEpoch != params.BeaconConfig().FarFutureEpoch {
+		if item.Validator.ExitEpoch != farFutureEpoch {
 			wrongExit++
 		}
-		if v.WithdrawableEpoch != params.BeaconConfig().FarFutureEpoch {
+		if item.Validator.WithdrawableEpoch != farFutureEpoch {
 			wrongWithdraw++
 		}
 	}
 
-	// Make sure every post-genesis deposit has been processed, resulting in a validator.
 	if len(expected) > 0 {
 		return fmt.Errorf("missing %d validators for post-genesis deposits", len(expected))
 	}
-
 	if deposits > 0 && uint64(deposits) != params.BeaconConfig().MinPerEpochChurnLimit {
 		return fmt.Errorf("expected %d deposits to be processed in epoch %d, received %d", params.BeaconConfig().MinPerEpochChurnLimit, epoch, deposits)
 	}
-
 	if lowBalance > 0 {
 		return fmt.Errorf(
 			"%d validators did not have genesis validator effective balance of %d",
@@ -348,36 +400,19 @@ func activatesDepositedValidators(ec *e2etypes.EvaluationContext, conns ...*grpc
 	return nil
 }
 
-func getAllValidators(c ethpb.BeaconChainClient) ([]*ethpb.Validator, error) {
-	vals := make([]*ethpb.Validator, 0)
-	pageToken := "0"
-	for pageToken != "" {
-		validatorRequest := &ethpb.ListValidatorsRequest{
-			PageSize:  100,
-			PageToken: pageToken,
-		}
-		validators, err := c.ListValidators(context.Background(), validatorRequest)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get validators")
-		}
-		for _, v := range validators.ValidatorList {
-			vals = append(vals, v.Validator)
-		}
-		pageToken = validators.NextPageToken
+func depositedValidatorsAreActive(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
 	}
-	return vals, nil
-}
+	ctx := context.Background()
 
-func depositedValidatorsAreActive(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
-
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get chain head")
 	}
 
-	vals, err := getAllValidators(client)
+	validatorsResp, err := client.ListValidators(ctx, "head")
 	if err != nil {
 		return errors.Wrap(err, "error retrieving validator list from API")
 	}
@@ -386,30 +421,45 @@ func depositedValidatorsAreActive(ec *e2etypes.EvaluationContext, conns ...*grpc
 	nexits := 0
 	expected := ec.Balances(e2etypes.PostGenesisDepositBatch)
 	nexpected := len(expected)
-	for _, v := range vals {
-		key := bytesutil.ToBytes48(v.PublicKey)
-		if _, ok := expected[key]; !ok {
-			continue // we aren't checking for this validator
+
+	for _, item := range validatorsResp.Data {
+		pk, err := hex.DecodeString(strings.TrimPrefix(item.Validator.Pubkey, "0x"))
+		if err != nil {
+			continue
 		}
-		// ignore voluntary exits when checking balance and active status
+		key := bytesutil.ToBytes48(pk)
+		if _, ok := expected[key]; !ok {
+			continue
+		}
 		if _, exited := ec.ExitedVals[key]; exited {
 			nexits++
 			delete(expected, key)
 			continue
 		}
-		// This is to handle the changed validator activation procedure post-electra.
-		if v.ActivationEligibilityEpoch != math.MaxUint64 && v.ActivationEligibilityEpoch > chainHead.FinalizedEpoch {
+
+		activationEligibilityEpoch, _ := strconv.ParseUint(item.Validator.ActivationEligibilityEpoch, 10, 64)
+		activationEpoch, _ := strconv.ParseUint(item.Validator.ActivationEpoch, 10, 64)
+		exitEpoch, _ := strconv.ParseUint(item.Validator.ExitEpoch, 10, 64)
+		effBalance, _ := strconv.ParseUint(item.Validator.EffectiveBalance, 10, 64)
+
+		if activationEligibilityEpoch != math.MaxUint64 && primitives.Epoch(activationEligibilityEpoch) > chainHead.FinalizedEpoch {
 			delete(expected, key)
 			continue
 		}
-		if v.ActivationEpoch != math.MaxUint64 && v.ActivationEpoch > chainHead.HeadEpoch {
+		if activationEpoch != math.MaxUint64 && primitives.Epoch(activationEpoch) > chainHead.HeadEpoch {
 			delete(expected, key)
 			continue
+		}
+
+		// Build a minimal proto validator for IsActiveValidator check.
+		v := &ethpb.Validator{
+			ActivationEpoch: primitives.Epoch(activationEpoch),
+			ExitEpoch:       primitives.Epoch(exitEpoch),
 		}
 		if !corehelpers.IsActiveValidator(v, chainHead.HeadEpoch) {
 			inactive++
 		}
-		if v.EffectiveBalance < params.BeaconConfig().MaxEffectiveBalance {
+		if effBalance < params.BeaconConfig().MaxEffectiveBalance {
 			lowBalance++
 		}
 		delete(expected, key)
@@ -428,26 +478,27 @@ func depositedValidatorsAreActive(ec *e2etypes.EvaluationContext, conns ...*grpc
 	return nil
 }
 
-func proposeVoluntaryExit(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	valClient := ethpb.NewBeaconNodeValidatorClient(conn)
-	beaconClient := ethpb.NewBeaconChainClient(conn)
-	debugClient := ethpb.NewDebugClient(conn)
-
+func proposeVoluntaryExit(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
-	chainHead, err := beaconClient.GetChainHead(ctx, &emptypb.Empty{})
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "could not get chain head")
 	}
-	stObj, err := debugClient.GetBeaconState(ctx, &ethpb.BeaconStateRequest{QueryFilter: &ethpb.BeaconStateRequest_Slot{Slot: chainHead.HeadSlot}})
+
+	encoded, err := client.GetBeaconStateSSZ(ctx, strconv.FormatUint(uint64(chainHead.HeadSlot), 10))
 	if err != nil {
 		return errors.Wrap(err, "could not get state object")
 	}
-	versionedMarshaler, err := detect.FromState(stObj.Encoded)
+	versionedMarshaler, err := detect.FromState(encoded)
 	if err != nil {
 		return errors.Wrap(err, "could not get state marshaler")
 	}
-	st, err := versionedMarshaler.UnmarshalBeaconState(stObj.Encoded)
+	st, err := versionedMarshaler.UnmarshalBeaconState(encoded)
 	if err != nil {
 		return errors.Wrap(err, "could not get state")
 	}
@@ -475,29 +526,28 @@ func proposeVoluntaryExit(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientC
 			Epoch:          chainHead.HeadEpoch,
 			ValidatorIndex: exitedIndex,
 		}
-		req := &ethpb.DomainRequest{
-			Epoch:  chainHead.HeadEpoch,
-			Domain: params.BeaconConfig().DomainVoluntaryExit[:],
-		}
-		domain, err := valClient.DomainData(ctx, req)
+		domain, err := helpers.ComputeDomainData(chainHead.HeadEpoch, params.BeaconConfig().DomainVoluntaryExit)
 		if err != nil {
 			return err
 		}
-		signingData, err := signing.ComputeSigningRoot(voluntaryExit, domain.SignatureDomain)
+		signingData, err := signing.ComputeSigningRoot(voluntaryExit, domain)
 		if err != nil {
 			return err
 		}
 		signature := privKeys[exitedIndex].Sign(signingData[:])
-		signedExit := &ethpb.SignedVoluntaryExit{
-			Exit:      voluntaryExit,
-			Signature: signature.Marshal(),
-		}
 
-		if _, err = valClient.ProposeExit(ctx, signedExit); err != nil {
+		signedExit := &structs.SignedVoluntaryExit{
+			Message: &structs.VoluntaryExit{
+				Epoch:          strconv.FormatUint(uint64(chainHead.HeadEpoch), 10),
+				ValidatorIndex: strconv.FormatUint(uint64(exitedIndex), 10),
+			},
+			Signature: hexutil.Encode(signature.Marshal()),
+		}
+		if err = client.SubmitVoluntaryExit(ctx, signedExit); err != nil {
 			return errors.Wrap(err, "could not propose exit")
 		}
 		pubk := bytesutil.ToBytes48(deposits[exitedIndex].Data.PublicKey)
-		ec.ExitedVals[pubk] = chainHead.HeadEpoch // Store submission epoch
+		ec.ExitedVals[pubk] = chainHead.HeadEpoch
 		return nil
 	}
 
@@ -523,130 +573,83 @@ func proposeVoluntaryExit(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientC
 	return nil
 }
 
-func validatorsHaveExited(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
+func validatorsHaveExited(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	farFutureEpoch := strconv.FormatUint(uint64(params.BeaconConfig().FarFutureEpoch), 10)
+
 	for k := range ec.ExitedVals {
-		validatorRequest := &ethpb.GetValidatorRequest{
-			QueryFilter: &ethpb.GetValidatorRequest_PublicKey{
-				PublicKey: k[:],
-			},
-		}
-		validator, err := client.GetValidator(context.Background(), validatorRequest)
+		pubkeyHex := hexutil.Encode(k[:])
+		validatorResp, err := client.GetValidator(ctx, "head", pubkeyHex)
 		if err != nil {
 			return errors.Wrap(err, "failed to get validators")
 		}
-		if validator.ExitEpoch == params.BeaconConfig().FarFutureEpoch {
+		if validatorResp.Data.Validator.ExitEpoch == farFutureEpoch {
 			return fmt.Errorf("expected validator %#x to be submitted for exit", k)
 		}
 	}
 	return nil
 }
 
-func validatorsVoteWithTheMajority(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+func validatorsVoteWithTheMajority(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get chain head")
 	}
 
 	begin := chainHead.HeadEpoch
-	// Prevent underflow when this runs at epoch 0.
 	if begin > 0 {
 		begin = begin.Sub(1)
 	}
-	req := &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: begin}}
-	blks, err := client.ListBeaconBlocks(context.Background(), req)
-	if err != nil {
-		return errors.Wrap(err, "failed to get blocks from beacon-chain")
-	}
 
 	slotsPerVotingPeriod := params.E2ETestConfig().SlotsPerEpoch.Mul(uint64(params.E2ETestConfig().EpochsPerEth1VotingPeriod))
-	for _, blk := range blks.BlockContainers {
-		var slot primitives.Slot
-		var vote []byte
-		switch blk.Block.(type) {
-		case *ethpb.BeaconBlockContainer_Phase0Block:
-			b := blk.GetPhase0Block().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_AltairBlock:
-			b := blk.GetAltairBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_BellatrixBlock:
-			b := blk.GetBellatrixBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_BlindedBellatrixBlock:
-			b := blk.GetBlindedBellatrixBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_CapellaBlock:
-			b := blk.GetCapellaBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_BlindedCapellaBlock:
-			b := blk.GetBlindedCapellaBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_DenebBlock:
-			b := blk.GetDenebBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_BlindedDenebBlock:
-			b := blk.GetBlindedDenebBlock().Message
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_ElectraBlock:
-			b := blk.GetElectraBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_BlindedElectraBlock:
-			b := blk.GetBlindedElectraBlock().Message
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_FuluBlock:
-			b := blk.GetFuluBlock().Block
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		case *ethpb.BeaconBlockContainer_BlindedFuluBlock:
-			b := blk.GetBlindedFuluBlock().Message
-			slot = b.Slot
-			vote = b.Body.Eth1Data.BlockHash
-		default:
-			return fmt.Errorf("block of type %T is unknown", blk.Block)
+
+	return iterateBlocksInEpoch(ctx, client, begin, func(blockResp *structs.GetBlockV2Response, slot primitives.Slot) error {
+		var msg eth1VoteBlockMsg
+		if err := json.Unmarshal(blockResp.Data.Message, &msg); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal block message at slot %d", slot)
 		}
-		ec.SeenVotes[slot] = vote
+
+		parsedSlot, _ := strconv.ParseUint(msg.Slot, 10, 64)
+		blockSlot := primitives.Slot(parsedSlot)
+		vote, err := hex.DecodeString(strings.TrimPrefix(msg.Body.Eth1Data.BlockHash, "0x"))
+		if err != nil {
+			return errors.Wrap(err, "failed to decode eth1data block hash")
+		}
+		ec.SeenVotes[blockSlot] = vote
 
 		// We treat epoch 1 differently from other epoch for two reasons:
 		// - this evaluator is not executed for epoch 0 so we have to calculate the first slot differently
 		// - for some reason the vote for the first slot in epoch 1 is 0x000... so we skip this slot
 		var isFirstSlotInVotingPeriod bool
-		if chainHead.HeadEpoch == 1 && slot%params.BeaconConfig().SlotsPerEpoch == 0 {
-			continue
+		if chainHead.HeadEpoch == 1 && blockSlot%params.BeaconConfig().SlotsPerEpoch == 0 {
+			return nil // skip this slot, equivalent to 'continue' in the original loop
 		}
 		// We skipped the first slot so we treat the second slot as the starting slot of epoch 1.
 		if chainHead.HeadEpoch == 1 {
-			isFirstSlotInVotingPeriod = slot%params.BeaconConfig().SlotsPerEpoch == 1
+			isFirstSlotInVotingPeriod = blockSlot%params.BeaconConfig().SlotsPerEpoch == 1
 		} else {
-			isFirstSlotInVotingPeriod = slot%slotsPerVotingPeriod == 0
+			isFirstSlotInVotingPeriod = blockSlot%slotsPerVotingPeriod == 0
 		}
 		if isFirstSlotInVotingPeriod {
 			ec.ExpectedEth1DataVote = vote
-			ec.Eth1DataMismatchCount = 0 // Reset for new voting period
-			return nil
+			ec.Eth1DataMismatchCount = 0
+			return errStopIteration
 		}
 
 		if !bytes.Equal(vote, ec.ExpectedEth1DataVote) {
-			// Allow some tolerance for eth1data vote differences.
-			// Validators may have slightly different views of the eth1 chain
-			// as new blocks arrive during the voting period.
 			ec.Eth1DataMismatchCount++
-			// Allow up to 2 mismatches per voting period before failing.
 			if ec.Eth1DataMismatchCount > 2 {
-				for i := primitives.Slot(0); i < slot; i++ {
+				for i := range blockSlot {
 					v, ok := ec.SeenVotes[i]
 					if ok {
 						fmt.Printf("vote at slot=%d = %#x\n", i, v)
@@ -655,32 +658,34 @@ func validatorsVoteWithTheMajority(ec *e2etypes.EvaluationContext, conns ...*grp
 					}
 				}
 				return fmt.Errorf("incorrect eth1data vote for slot %d; expected: %#x vs voted: %#x (mismatch count: %d)",
-					slot, ec.ExpectedEth1DataVote, vote, ec.Eth1DataMismatchCount)
+					blockSlot, ec.ExpectedEth1DataVote, vote, ec.Eth1DataMismatchCount)
 			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
-func submitWithdrawal(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	beaconClient := ethpb.NewBeaconChainClient(conn)
-	debugClient := ethpb.NewDebugClient(conn)
-
+func submitWithdrawal(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
-	chainHead, err := beaconClient.GetChainHead(ctx, &emptypb.Empty{})
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "could not get chain head")
 	}
-	stObj, err := debugClient.GetBeaconState(ctx, &ethpb.BeaconStateRequest{QueryFilter: &ethpb.BeaconStateRequest_Slot{Slot: chainHead.HeadSlot}})
+
+	encoded, err := client.GetBeaconStateSSZ(ctx, strconv.FormatUint(uint64(chainHead.HeadSlot), 10))
 	if err != nil {
 		return errors.Wrap(err, "could not get state object")
 	}
-	versionedMarshaler, err := detect.FromState(stObj.Encoded)
+	versionedMarshaler, err := detect.FromState(encoded)
 	if err != nil {
 		return errors.Wrap(err, "could not get state marshaler")
 	}
-	st, err := versionedMarshaler.UnmarshalBeaconState(stObj.Encoded)
+	st, err := versionedMarshaler.UnmarshalBeaconState(encoded)
 	if err != nil {
 		return errors.Wrap(err, "could not get state")
 	}
@@ -707,7 +712,6 @@ func submitWithdrawal(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn)
 		wantedChanges = numOfExits
 	}
 	for _, idx := range exitedIndices {
-		// Exit sending more change messages.
 		if len(changes) >= wantedChanges {
 			break
 		}
@@ -742,7 +746,7 @@ func submitWithdrawal(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn)
 		})
 	}
 
-	beaconAPIClient, err := beacon.NewClient(fmt.Sprintf("http://localhost:%d/eth/v1", e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort)) // only uses the first node so no updates to port
+	beaconAPIClient, err := beacon.NewClient(fmt.Sprintf("http://localhost:%d/eth/v1", e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort))
 	if err != nil {
 		return err
 	}
@@ -750,25 +754,27 @@ func submitWithdrawal(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn)
 	return beaconAPIClient.SubmitChangeBLStoExecution(ctx, changes)
 }
 
-func validatorsAreWithdrawn(ec *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	beaconClient := ethpb.NewBeaconChainClient(conn)
-	debugClient := ethpb.NewDebugClient(conn)
-
+func validatorsAreWithdrawn(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
-	chainHead, err := beaconClient.GetChainHead(ctx, &emptypb.Empty{})
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "could not get chain head")
 	}
-	stObj, err := debugClient.GetBeaconState(ctx, &ethpb.BeaconStateRequest{QueryFilter: &ethpb.BeaconStateRequest_Slot{Slot: chainHead.HeadSlot}})
+
+	encoded, err := client.GetBeaconStateSSZ(ctx, strconv.FormatUint(uint64(chainHead.HeadSlot), 10))
 	if err != nil {
 		return errors.Wrap(err, "could not get state object")
 	}
-	versionedMarshaler, err := detect.FromState(stObj.Encoded)
+	versionedMarshaler, err := detect.FromState(encoded)
 	if err != nil {
 		return errors.Wrap(err, "could not get state marshaler")
 	}
-	st, err := versionedMarshaler.UnmarshalBeaconState(stObj.Encoded)
+	st, err := versionedMarshaler.UnmarshalBeaconState(encoded)
 	if err != nil {
 		return errors.Wrap(err, "could not get state")
 	}
@@ -782,10 +788,47 @@ func validatorsAreWithdrawn(ec *e2etypes.EvaluationContext, conns ...*grpc.Clien
 		if err != nil {
 			return err
 		}
-		// Only return an error if the validator has more than 1 eth
-		// in its balance.
 		if bal > 1*params.BeaconConfig().GweiPerEth {
 			return errors.Errorf("Validator index %d with key %#x hasn't withdrawn. Their balance is %d.", valIdx, key, bal)
+		}
+	}
+	return nil
+}
+
+// errStopIteration is a sentinel error to stop block iteration early (not an actual error).
+var errStopIteration = errors.New("stop iteration")
+
+// iterateBlocksInEpoch iterates over all blocks in an epoch, calling fn for each block found.
+// Returns nil if iteration completes normally, or any error from fn (except errStopIteration which stops cleanly).
+func iterateBlocksInEpoch(
+	ctx context.Context,
+	client *helpers.BeaconNodeClient,
+	epoch primitives.Epoch,
+	fn func(blockResp *structs.GetBlockV2Response, slot primitives.Slot) error,
+) error {
+	startSlot, err := slots.EpochStart(epoch)
+	if err != nil {
+		return errors.Wrap(err, "failed to compute start slot")
+	}
+	endSlot := startSlot + params.BeaconConfig().SlotsPerEpoch
+	for slot := startSlot; slot < endSlot; slot++ {
+		blockResp, err := client.GetBlock(ctx, strconv.FormatUint(uint64(slot), 10))
+		if err != nil {
+			// Only treat 'not found' errors as empty slots (missed blocks).
+			errMsg := strings.ToLower(err.Error())
+			if strings.Contains(errMsg, "404") || strings.Contains(errMsg, "not found") {
+				continue
+			}
+			return errors.Wrapf(err, "failed to get block at slot %d", slot)
+		}
+		if blockResp.Data == nil {
+			continue
+		}
+		if err := fn(blockResp, slot); err != nil {
+			if errors.Is(err, errStopIteration) {
+				return nil
+			}
+			return err
 		}
 	}
 	return nil

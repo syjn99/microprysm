@@ -2,28 +2,28 @@ package evaluators
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/bits"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/OffchainLabs/prysm/v7/api/server/structs"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/core/altair"
 	"github.com/OffchainLabs/prysm/v7/config/params"
-	"github.com/OffchainLabs/prysm/v7/consensus-types/blocks"
-	"github.com/OffchainLabs/prysm/v7/consensus-types/interfaces"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
 	"github.com/OffchainLabs/prysm/v7/network/httputil"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	e2eparams "github.com/OffchainLabs/prysm/v7/testing/endtoend/params"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var expectedParticipation = 0.98
@@ -59,24 +59,20 @@ var ValidatorSyncParticipation = types.Evaluator{
 	Evaluation: validatorsSyncParticipation,
 }
 
-func validatorsAreActive(ec *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
-
-	// Balances actually fluctuate but we just want to check initial balance.
-	validatorRequest := &ethpb.ListValidatorsRequest{
-		PageSize: int32(params.BeaconConfig().MinGenesisActiveValidatorCount),
-		Active:   true,
+func validatorsAreActive(ec *types.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
 	}
-	validators, err := client.ListValidators(context.Background(), validatorRequest)
+	ctx := context.Background()
+
+	validatorsResp, err := client.ListValidators(ctx, "head", "active")
 	if err != nil {
 		return errors.Wrap(err, "failed to get validators")
 	}
 
 	// Count should be MinGenesisActiveValidatorCount minus any validators that have exited.
-	// We determine actual exited count from the difference, as exits may be submitted but
-	// not yet processed, or affected by churn limits.
-	receivedCount := uint64(len(validators.ValidatorList))
+	receivedCount := uint64(len(validatorsResp.Data))
 	maxExpected := params.BeaconConfig().MinGenesisActiveValidatorCount
 	minExpected := maxExpected - uint64(len(ec.ExitedVals))
 
@@ -91,17 +87,26 @@ func validatorsAreActive(ec *types.EvaluationContext, conns ...*grpc.ClientConn)
 	effBalanceLowCount := 0
 	exitEpochWrongCount := 0
 	withdrawEpochWrongCount := 0
-	for _, item := range validators.ValidatorList {
-		if _, exited := ec.ExitedVals[bytesutil.ToBytes48(item.Validator.PublicKey)]; exited {
+	farFutureEpoch := strconv.FormatUint(uint64(params.BeaconConfig().FarFutureEpoch), 10)
+	for _, item := range validatorsResp.Data {
+		pk, err := hex.DecodeString(strings.TrimPrefix(item.Validator.Pubkey, "0x"))
+		if err != nil {
+			return errors.Wrap(err, "failed to decode validator pubkey")
+		}
+		if _, exited := ec.ExitedVals[bytesutil.ToBytes48(pk)]; exited {
 			continue
 		}
-		if item.Validator.EffectiveBalance < params.BeaconConfig().MaxEffectiveBalance {
+		effBalance, err := strconv.ParseUint(item.Validator.EffectiveBalance, 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse effective balance")
+		}
+		if effBalance < params.BeaconConfig().MaxEffectiveBalance {
 			effBalanceLowCount++
 		}
-		if item.Validator.ExitEpoch != params.BeaconConfig().FarFutureEpoch {
+		if item.Validator.ExitEpoch != farFutureEpoch {
 			exitEpochWrongCount++
 		}
-		if item.Validator.WithdrawableEpoch != params.BeaconConfig().FarFutureEpoch {
+		if item.Validator.WithdrawableEpoch != farFutureEpoch {
 			withdrawEpochWrongCount++
 		}
 	}
@@ -122,27 +127,39 @@ func validatorsAreActive(ec *types.EvaluationContext, conns ...*grpc.ClientConn)
 }
 
 // validatorsParticipating ensures the validators have an acceptable participation rate.
-func validatorsParticipating(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
-	validatorRequest := &ethpb.GetValidatorParticipationRequest{}
-	participation, err := client.GetValidatorParticipation(context.Background(), validatorRequest)
+func validatorsParticipating(_ *types.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	participation, err := client.GetValidatorParticipation(ctx, "head")
 	if err != nil {
 		return errors.Wrap(err, "failed to get validator participation")
 	}
 
-	partRate := participation.Participation.GlobalParticipationRate
-	expected := float32(expectedParticipation)
-	if e2eparams.TestParams.LighthouseBeaconNodeCount != 0 {
-		expected = float32(expectedMulticlientParticipation)
+	partRate, err := strconv.ParseFloat(participation.Participation.GlobalParticipationRate, 32)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse participation rate")
 	}
-	if participation.Epoch == params.BeaconConfig().ElectraForkEpoch {
+	partEpoch, err := strconv.ParseUint(participation.Epoch, 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse participation epoch")
+	}
+	epoch := primitives.Epoch(partEpoch)
+
+	expected := float64(expectedParticipation)
+	if e2eparams.TestParams.LighthouseBeaconNodeCount != 0 {
+		expected = float64(expectedMulticlientParticipation)
+	}
+	if epoch == params.BeaconConfig().ElectraForkEpoch {
 		// The first slot of Electra will be missed due to the switching of attestation types
 		// 5/6 slots =~0.83
 		// validator REST always is slightly reduced at ~0.82
 		expected = 0.82
 	}
-	if participation.Epoch > 0 && participation.Epoch.Sub(1) == params.BeaconConfig().BellatrixForkEpoch {
+	if epoch > 0 && epoch.Sub(1) == params.BeaconConfig().BellatrixForkEpoch {
 		// Reduce Participation requirement to 95% to account for longer EE calls for
 		// the merge block. Target and head will likely be missed for a few validators at
 		// slot 0.
@@ -220,7 +237,7 @@ func validatorsParticipating(_ *types.EvaluationContext, conns ...*grpc.ClientCo
 		return fmt.Errorf(
 			"validator participation was below for epoch %d, expected %f, received: %f."+
 				" Missing Source,Target and Head validators are %v, %v, %v",
-			participation.Epoch,
+			epoch,
 			expected,
 			partRate,
 			missSrcVals,
@@ -231,17 +248,51 @@ func validatorsParticipating(_ *types.EvaluationContext, conns ...*grpc.ClientCo
 	return nil
 }
 
+// syncBlockMsg is a minimal struct for parsing sync aggregate fields from any post-Altair block.
+type syncBlockMsg struct {
+	Slot string `json:"slot"`
+	Body struct {
+		SyncAggregate *syncAggregateMsg `json:"sync_aggregate"`
+	} `json:"body"`
+}
+
+type syncAggregateMsg struct {
+	SyncCommitteeBits string `json:"sync_committee_bits"`
+}
+
+// countSyncBits decodes a hex-encoded bitvector and returns (set bits count, total bits count).
+func countSyncBits(hexBits string) (uint64, uint64, error) {
+	b, err := hex.DecodeString(strings.TrimPrefix(hexBits, "0x"))
+	if err != nil {
+		return 0, 0, errors.Wrap(err, "failed to decode sync committee bits")
+	}
+	var count uint64
+	for _, byt := range b {
+		count += uint64(bits.OnesCount8(byt))
+	}
+	return count, uint64(len(b)) * 8, nil
+}
+
 // validatorsSyncParticipation ensures the validators have an acceptable participation rate for
 // sync committee assignments.
-func validatorsSyncParticipation(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewNodeClient(conn)
-	altairClient := ethpb.NewBeaconChainClient(conn)
-	genesis, err := client.GetGenesis(context.Background(), &emptypb.Empty{})
+func validatorsSyncParticipation(_ *types.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	genesisResp, err := client.GetGenesis(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get genesis data")
 	}
-	currSlot := slots.CurrentSlot(genesis.GenesisTime.AsTime())
+	genesisTimeSec, err := strconv.ParseInt(genesisResp.Data.GenesisTime, 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse genesis time")
+	}
+	genesisTime := time.Unix(genesisTimeSec, 0)
+
+	currSlot := slots.CurrentSlot(genesisTime)
 	currEpoch := slots.ToEpoch(currSlot)
 	lowestBound := primitives.Epoch(0)
 	if currEpoch >= 1 {
@@ -251,146 +302,125 @@ func validatorsSyncParticipation(_ *types.EvaluationContext, conns ...*grpc.Clie
 	if lowestBound < params.BeaconConfig().AltairForkEpoch {
 		lowestBound = params.BeaconConfig().AltairForkEpoch
 	}
-	blockCtrs, err := altairClient.ListBeaconBlocks(context.Background(), &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: lowestBound}})
-	if err != nil {
-		return errors.Wrap(err, "failed to get validator participation")
-	}
-	for _, ctr := range blockCtrs.BlockContainers {
-		b, err := syncCompatibleBlockFromCtr(ctr)
-		if err != nil {
-			return errors.Wrapf(err, "block type doesn't exist for block at epoch %d", lowestBound)
-		}
 
-		if b == nil || b.IsNil() {
-			return errors.New("nil block provided")
-		}
-		forkStartSlot, err := slots.EpochStart(params.BeaconConfig().AltairForkEpoch)
-		if err != nil {
-			return err
-		}
-		if forkStartSlot == b.Block().Slot() {
-			// Skip fork slot.
-			continue
-		}
-		// Skip slots 1-2 at genesis - validators need time to ramp up after chain start
-		// due to doppelganger protection. This is a startup timing issue, not a fork transition issue.
-		if b.Block().Slot() < 3 {
-			continue
-		}
-		expectedParticipation := expectedSyncParticipation
-		switch slots.ToEpoch(b.Block().Slot()) {
-		case params.BeaconConfig().AltairForkEpoch:
-			// Drop expected sync participation figure.
-			expectedParticipation = 0.90
-		default:
-			// no-op
-		}
-		syncAgg, err := b.Block().Body().SyncAggregate()
-		if err != nil {
-			return err
-		}
-		threshold := uint64(float64(syncAgg.SyncCommitteeBits.Len()) * expectedParticipation)
-		if syncAgg.SyncCommitteeBits.Count() < threshold {
-			return errors.Errorf("In block of slot %d ,the aggregate bitvector with length of %d only got a count of %d", b.Block().Slot(), threshold, syncAgg.SyncCommitteeBits.Count())
-		}
+	if err := checkSyncParticipationForEpoch(ctx, client, lowestBound, true); err != nil {
+		return err
 	}
 	if lowestBound == currEpoch {
 		return nil
 	}
-	blockCtrs, err = altairClient.ListBeaconBlocks(context.Background(), &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: currEpoch}})
+	return checkSyncParticipationForEpoch(ctx, client, currEpoch, false)
+}
+
+func checkSyncParticipationForEpoch(
+	ctx context.Context,
+	client *helpers.BeaconNodeClient,
+	epoch primitives.Epoch,
+	isLowestBound bool,
+) error {
+	startSlot, err := slots.EpochStart(epoch)
 	if err != nil {
-		return errors.Wrap(err, "failed to get validator participation")
+		return errors.Wrap(err, "failed to compute start slot")
 	}
-	for _, ctr := range blockCtrs.BlockContainers {
-		b, err := syncCompatibleBlockFromCtr(ctr)
+	endSlot := startSlot + params.BeaconConfig().SlotsPerEpoch
+	forkStartSlot, err := slots.EpochStart(params.BeaconConfig().AltairForkEpoch)
+	if err != nil {
+		return err
+	}
+
+	for slot := startSlot; slot < endSlot; slot++ {
+		blockResp, err := client.GetBlock(ctx, strconv.FormatUint(uint64(slot), 10))
 		if err != nil {
-			return errors.Wrapf(err, "block type doesn't exist for block at epoch %d", lowestBound)
+			// Slot may be empty (missed block); skip.
+			continue
+		}
+		if blockResp.Data == nil {
+			continue
 		}
 
-		if b == nil || b.IsNil() {
+		// Skip Phase0 blocks (no sync aggregate).
+		v, err := version.FromString(blockResp.Version)
+		if err != nil || v < version.Altair {
+			continue
+		}
+
+		var msg syncBlockMsg
+		if err := json.Unmarshal(blockResp.Data.Message, &msg); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal block message at slot %d", slot)
+		}
+		if msg.Body.SyncAggregate == nil {
 			return errors.New("nil block provided")
 		}
-		// Skip evaluation of fork transition slots as sync participation
-		// tends to drop briefly when transitioning between forks.
-		forkEpochs := []primitives.Epoch{
-			params.BeaconConfig().AltairForkEpoch,
-			params.BeaconConfig().BellatrixForkEpoch,
-			params.BeaconConfig().CapellaForkEpoch,
-			params.BeaconConfig().DenebForkEpoch,
-			params.BeaconConfig().ElectraForkEpoch,
-			params.BeaconConfig().FuluForkEpoch,
+
+		blockSlot, err := strconv.ParseUint(msg.Slot, 10, 64)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse slot")
 		}
-		skipSlot := false
-		for _, forkEpoch := range forkEpochs {
-			// Skip fork epochs set to far future (not scheduled).
-			if forkEpoch == params.BeaconConfig().FarFutureEpoch {
+
+		if isLowestBound {
+			if primitives.Slot(blockSlot) == forkStartSlot {
+				// Skip fork slot.
 				continue
 			}
-			forkSlot, err := slots.EpochStart(forkEpoch)
+			// Skip slots 1-2 at genesis - validators need time to ramp up after chain start
+			// due to doppelganger protection. This is a startup timing issue, not a fork transition issue.
+			if blockSlot < 3 {
+				continue
+			}
+			expectedPart := expectedSyncParticipation
+			switch slots.ToEpoch(primitives.Slot(blockSlot)) {
+			case params.BeaconConfig().AltairForkEpoch:
+				// Drop expected sync participation figure.
+				expectedPart = 0.90
+			default:
+				// no-op
+			}
+			count, length, err := countSyncBits(msg.Body.SyncAggregate.SyncCommitteeBits)
 			if err != nil {
 				return err
 			}
-			// Skip the first two slots of each fork epoch.
-			if b.Block().Slot() == forkSlot || b.Block().Slot() == forkSlot+1 {
-				skipSlot = true
-				break
+			threshold := uint64(float64(length) * expectedPart)
+			if count < threshold {
+				return errors.Errorf("In block of slot %d ,the aggregate bitvector with length of %d only got a count of %d", blockSlot, threshold, count)
 			}
-		}
-		if skipSlot {
-			continue
-		}
-		syncAgg, err := b.Block().Body().SyncAggregate()
-		if err != nil {
-			return err
-		}
-		threshold := uint64(float64(syncAgg.SyncCommitteeBits.Len()) * expectedSyncParticipation)
-		if syncAgg.SyncCommitteeBits.Count() < threshold {
-			return errors.Errorf("In block of slot %d ,the aggregate bitvector with length of %d only got a count of %d", b.Block().Slot(), threshold, syncAgg.SyncCommitteeBits.Count())
+		} else {
+			// For the current epoch, skip fork transition slots.
+			forkEpochs := []primitives.Epoch{
+				params.BeaconConfig().AltairForkEpoch,
+				params.BeaconConfig().BellatrixForkEpoch,
+				params.BeaconConfig().CapellaForkEpoch,
+				params.BeaconConfig().DenebForkEpoch,
+				params.BeaconConfig().ElectraForkEpoch,
+				params.BeaconConfig().FuluForkEpoch,
+			}
+			skipSlot := false
+			for _, forkEpoch := range forkEpochs {
+				if forkEpoch == params.BeaconConfig().FarFutureEpoch {
+					continue
+				}
+				forkSlot, err := slots.EpochStart(forkEpoch)
+				if err != nil {
+					return err
+				}
+				if primitives.Slot(blockSlot) == forkSlot || primitives.Slot(blockSlot) == forkSlot+1 {
+					skipSlot = true
+					break
+				}
+			}
+			if skipSlot {
+				continue
+			}
+			count, length, err := countSyncBits(msg.Body.SyncAggregate.SyncCommitteeBits)
+			if err != nil {
+				return err
+			}
+			threshold := uint64(float64(length) * expectedSyncParticipation)
+			if count < threshold {
+				return errors.Errorf("In block of slot %d ,the aggregate bitvector with length of %d only got a count of %d", blockSlot, threshold, count)
+			}
 		}
 	}
 	return nil
-}
-
-func syncCompatibleBlockFromCtr(container *ethpb.BeaconBlockContainer) (interfaces.ReadOnlySignedBeaconBlock, error) {
-	if container.GetPhase0Block() != nil {
-		return nil, errors.New("block doesn't support sync committees")
-	}
-	if container.GetAltairBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetAltairBlock())
-	}
-	if container.GetBellatrixBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetBellatrixBlock())
-	}
-	if container.GetBlindedBellatrixBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetBlindedBellatrixBlock())
-	}
-	if container.GetCapellaBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetCapellaBlock())
-	}
-	if container.GetBlindedCapellaBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetBlindedCapellaBlock())
-	}
-	if container.GetDenebBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetDenebBlock())
-	}
-	if container.GetBlindedDenebBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetBlindedDenebBlock())
-	}
-	if container.GetElectraBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetElectraBlock())
-	}
-	if container.GetBlindedElectraBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetBlindedElectraBlock())
-	}
-
-	if container.GetFuluBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetFuluBlock())
-	}
-
-	if container.GetBlindedFuluBlock() != nil {
-		return blocks.NewSignedBeaconBlock(container.GetBlindedFuluBlock())
-	}
-	return nil, errors.New("no supported block type in container")
 }
 
 func findMissingValidators(participation []byte) ([]uint64, []uint64, []uint64, error) {

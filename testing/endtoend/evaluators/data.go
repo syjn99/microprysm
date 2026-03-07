@@ -2,12 +2,11 @@ package evaluators
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
-	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	e2etypes "github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
-	"google.golang.org/grpc"
 )
 
 const epochToCheck = 50 // must be more than 46 (32 hot states + 16 chkpt interval)
@@ -22,21 +21,21 @@ var ColdStateCheckpoint = e2etypes.Evaluator{
 }
 
 // Checks the first node for an old checkpoint using cold state storage.
-func checkColdStateCheckpoint(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
+func checkColdStateCheckpoint(ec *e2etypes.EvaluationContext, nodeURLs ...string) error {
 	ctx := context.Background()
-	client := eth.NewBeaconChainClient(conns[0])
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
 
 	for i := range primitives.Epoch(epochToCheck) {
-		res, err := client.ListValidatorAssignments(ctx, &eth.ListValidatorAssignmentsRequest{
-			QueryFilter: &eth.ListValidatorAssignmentsRequest_Epoch{Epoch: i},
-		})
+		res, err := client.GetProposerDuties(ctx, i)
 		if err != nil {
 			return err
 		}
-		// A simple check to ensure we received some data.
-		if res == nil || res.Epoch != i {
-			return errors.New("failed to return a validator assignments response for an old epoch " +
-				"using cold state storage from the database")
+		if res == nil || res.Data == nil {
+			return fmt.Errorf("failed to return proposer duties for epoch %d "+
+				"using cold state storage from the database", i)
 		}
 	}
 

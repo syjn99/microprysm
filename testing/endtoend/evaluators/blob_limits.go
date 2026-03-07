@@ -2,19 +2,19 @@ package evaluators
 
 import (
 	"context"
+	"encoding/json"
+	"strconv"
+	"time"
 
 	"github.com/OffchainLabs/prysm/v7/config/params"
-	"github.com/OffchainLabs/prysm/v7/consensus-types/blocks"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	e2etypes "github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // Minimum blob utilization percentage required to pass the evaluator.
@@ -46,11 +46,22 @@ var BlobLimitsRespected = e2etypes.Evaluator{
 	Evaluation: blobLimitsRespected,
 }
 
-func blobsIncludedInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	client := ethpb.NewBeaconChainClient(conn)
+// blobBlockMsg is a minimal struct for parsing blob-related fields from any post-Deneb block.
+type blobBlockMsg struct {
+	Slot string `json:"slot"`
+	Body struct {
+		BlobKzgCommitments []string `json:"blob_kzg_commitments"`
+	} `json:"body"`
+}
 
-	chainHead, err := client.GetChainHead(context.Background(), &emptypb.Empty{})
+func blobsIncludedInBlocks(_ *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	chainHead, err := client.GetChainHead(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get chain head")
 	}
@@ -66,34 +77,35 @@ func blobsIncludedInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientC
 		return nil
 	}
 
-	req := &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: epoch}}
-	blks, err := client.ListBeaconBlocks(context.Background(), req)
+	startSlot, err := slots.EpochStart(epoch)
 	if err != nil {
-		return errors.Wrap(err, "failed to get blocks from beacon-chain")
+		return errors.Wrap(err, "failed to compute start slot")
 	}
+	endSlot := startSlot + params.BeaconConfig().SlotsPerEpoch
 
 	blocksWithBlobs := 0
-	for _, ctr := range blks.BlockContainers {
-		blk, err := blocks.BeaconBlockContainerToSignedBeaconBlock(ctr)
+	for slot := startSlot; slot < endSlot; slot++ {
+		blockResp, err := client.GetBlock(ctx, strconv.FormatUint(uint64(slot), 10))
 		if err != nil {
-			return errors.Wrap(err, "failed to convert block container to signed beacon block")
+			// Slot may be empty (missed block); skip.
+			continue
 		}
-
-		if blk == nil || blk.IsNil() {
+		if blockResp.Data == nil {
 			continue
 		}
 
 		// Skip blocks before Deneb
-		if blk.Version() < version.Deneb {
+		v, err := version.FromString(blockResp.Version)
+		if err != nil || v < version.Deneb {
 			continue
 		}
 
-		commitments, err := blk.Block().Body().BlobKzgCommitments()
-		if err != nil {
-			return errors.Wrap(err, "failed to get blob kzg commitments")
+		var msg blobBlockMsg
+		if err := json.Unmarshal(blockResp.Data.Message, &msg); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal block message at slot %d", slot)
 		}
 
-		if len(commitments) > 0 {
+		if len(msg.Body.BlobKzgCommitments) > 0 {
 			blocksWithBlobs++
 		}
 	}
@@ -106,17 +118,24 @@ func blobsIncludedInBlocks(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientC
 	return nil
 }
 
-func blobLimitsRespected(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientConn) error {
-	conn := conns[0]
-	nodeClient := ethpb.NewNodeClient(conn)
-	beaconClient := ethpb.NewBeaconChainClient(conn)
+func blobLimitsRespected(_ *e2etypes.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
 
-	genesis, err := nodeClient.GetGenesis(context.Background(), &emptypb.Empty{})
+	genesisResp, err := client.GetGenesis(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to get genesis")
 	}
+	genesisTimeSec, err := strconv.ParseInt(genesisResp.Data.GenesisTime, 10, 64)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse genesis time")
+	}
+	genesisTime := time.Unix(genesisTimeSec, 0)
 
-	currSlot := slots.CurrentSlot(genesis.GenesisTime.AsTime())
+	currSlot := slots.CurrentSlot(genesisTime)
 	currEpoch := slots.ToEpoch(currSlot)
 
 	// Check the previous epoch to ensure blocks are finalized
@@ -130,11 +149,11 @@ func blobLimitsRespected(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientCon
 		return nil
 	}
 
-	req := &ethpb.ListBlocksRequest{QueryFilter: &ethpb.ListBlocksRequest_Epoch{Epoch: epochToCheck}}
-	blks, err := beaconClient.ListBeaconBlocks(context.Background(), req)
+	startSlot, err := slots.EpochStart(epochToCheck)
 	if err != nil {
-		return errors.Wrap(err, "failed to get blocks from beacon-chain")
+		return errors.Wrap(err, "failed to compute start slot")
 	}
+	endSlot := startSlot + params.BeaconConfig().SlotsPerEpoch
 
 	cfg := params.BeaconConfig()
 	maxBlobsForEpoch := cfg.MaxBlobsPerBlockAtEpoch(epochToCheck)
@@ -152,36 +171,40 @@ func blobLimitsRespected(_ *e2etypes.EvaluationContext, conns ...*grpc.ClientCon
 	var maxBlobsInBlock int
 	var blockCount int
 
-	for _, ctr := range blks.BlockContainers {
-		blk, err := blocks.BeaconBlockContainerToSignedBeaconBlock(ctr)
+	for slot := startSlot; slot < endSlot; slot++ {
+		blockResp, err := client.GetBlock(ctx, strconv.FormatUint(uint64(slot), 10))
 		if err != nil {
-			return errors.Wrap(err, "failed to convert block container to signed beacon block")
+			// Slot may be empty (missed block); skip.
+			continue
 		}
-
-		if blk == nil || blk.IsNil() {
+		if blockResp.Data == nil {
 			continue
 		}
 
 		// Skip blocks before Deneb (shouldn't happen if we're checking post-Fulu epochs)
-		if blk.Version() < version.Deneb {
+		v, err := version.FromString(blockResp.Version)
+		if err != nil || v < version.Deneb {
 			continue
 		}
 
-		slot := blk.Block().Slot()
-		blockEpoch := slots.ToEpoch(slot)
-
-		commitments, err := blk.Block().Body().BlobKzgCommitments()
-		if err != nil {
-			return errors.Wrap(err, "failed to get blob kzg commitments")
+		var msg blobBlockMsg
+		if err := json.Unmarshal(blockResp.Data.Message, &msg); err != nil {
+			return errors.Wrapf(err, "failed to unmarshal block message at slot %d", slot)
 		}
 
-		blobCount := len(commitments)
+		parsedSlot, err := strconv.ParseUint(msg.Slot, 10, 64)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse slot at %d", slot)
+		}
+		blockEpoch := slots.ToEpoch(primitives.Slot(parsedSlot))
+
+		blobCount := len(msg.Body.BlobKzgCommitments)
 
 		// Verify we don't exceed the limit
 		if blobCount > maxBlobsForEpoch {
 			return errors.Errorf(
 				"block at slot %d (epoch %d) has %d blobs, exceeding max allowed %d for this epoch",
-				slot, blockEpoch, blobCount, maxBlobsForEpoch,
+				parsedSlot, blockEpoch, blobCount, maxBlobsForEpoch,
 			)
 		}
 

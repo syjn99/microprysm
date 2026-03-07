@@ -2,13 +2,12 @@ package evaluators
 
 import (
 	"context"
+	"strconv"
 
-	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v7/testing/endtoend/helpers"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/policies"
 	"github.com/OffchainLabs/prysm/v7/testing/endtoend/types"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // PeersCheck performs a check on peer data to ensure that any connected peers
@@ -19,15 +18,21 @@ var PeersCheck = types.Evaluator{
 	Evaluation: peersTest,
 }
 
-func peersTest(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
-	debugClient := eth.NewDebugClient(conns[0])
+func peersTest(_ *types.EvaluationContext, nodeURLs ...string) error {
+	client, err := helpers.NewBeaconNodeClient(nodeURLs[0])
+	if err != nil {
+		return err
+	}
 
-	peerResponses, err := debugClient.ListPeers(context.Background(), &emptypb.Empty{})
+	peerResponses, err := client.ListDebugPeers(context.Background())
 	if err != nil {
 		return err
 	}
 	baseErr := error(nil)
-	for _, res := range peerResponses.Responses {
+	for _, res := range peerResponses.Data {
+		if res.ScoreInfo == nil {
+			continue
+		}
 		if res.ScoreInfo.GossipScore < 0 {
 			baseErr = wrapError(baseErr, "Gossip score for peer %s is %f and negative.", res.PeerId, res.ScoreInfo.GossipScore)
 		}
@@ -43,8 +48,11 @@ func peersTest(_ *types.EvaluationContext, conns ...*grpc.ClientConn) error {
 		if res.ScoreInfo.ValidationError != "" {
 			baseErr = wrapError(baseErr, "Peer %s has a validation error: %s", res.PeerId, res.ScoreInfo.ValidationError)
 		}
-		if res.PeerInfo != nil && res.PeerInfo.FaultCount > 0 {
-			baseErr = wrapError(baseErr, "Peer %s has a non zero fault count: %d", res.PeerId, res.PeerInfo.FaultCount)
+		if res.PeerInfo != nil {
+			faultCount, err := strconv.ParseUint(res.PeerInfo.FaultCount, 10, 64)
+			if err == nil && faultCount > 0 {
+				baseErr = wrapError(baseErr, "Peer %s has a non zero fault count: %d", res.PeerId, faultCount)
+			}
 		}
 		for topic, snap := range res.ScoreInfo.TopicScores {
 			if snap.InvalidMessageDeliveries > 0 {
