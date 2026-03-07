@@ -3,7 +3,7 @@ on: [ pull_request ]
 
 jobs:
   check-logs:
-    runs-on: ubuntu-4
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout

@@ -1,0 +1,52 @@
+name: Bazel E2E Tests
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    environment: e2e
+    container:
+      image: syjn99/bazel-toolchain:latest
+    permissions:
+      id-token: write
+      contents: read
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: ">= 390.0.0"
+
+      - name: Run E2E minimal tests
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+        run: |
+          bazel test \
+            --config=remote-cache \
+            --nostamp \
+            --jobs=4 \
+            --//proto:network=minimal \
+            --test_filter=TestEndToEnd_MinimalConfig$ \
+            --test_env=E2E_EPOCHS=10 \
+            --test_timeout=10000 \
+            --flaky_test_attempts=2 \
+            //testing/endtoend:go_default_test
+
+      - name: Disk usage
+        if: always()
+        run: df -h

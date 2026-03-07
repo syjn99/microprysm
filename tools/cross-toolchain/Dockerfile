@@ -27,6 +27,10 @@ RUN /tmp/install_osxcross.sh
 ADD link_osxcross.sh /tmp/link_osxcross.sh
 RUN /tmp/link_osxcross.sh
 
+# install bazelisk (auto-downloads the correct bazel version from .bazelversion)
+RUN curl -L https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 \
+    -o /usr/local/bin/bazel && chmod +x /usr/local/bin/bazel
+
 # containerized development environment
 FROM build as devel
 
