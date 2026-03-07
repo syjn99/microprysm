@@ -131,7 +131,8 @@ var (
 	}
 	EnableBeaconRESTApi = &cli.BoolFlag{
 		Name:  "enable-beacon-rest-api",
-		Usage: "(Experimental): Enables of the beacon REST API when querying a beacon node.",
+		Usage: "Enables the beacon REST API when querying a beacon node. Enabled by default; use --enable-beacon-rest-api=false to disable.",
+		Value: true,
 	}
 	enableHashtree = &cli.BoolFlag{
 		Name:  "enable-hashtree",

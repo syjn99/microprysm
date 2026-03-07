@@ -63,11 +63,11 @@
 
 ## Phase 3: Make REST Default for Validator Client (Medium Risk)
 
-### PR 3.1: Make EnableBeaconRESTApi default to true
+### PR 3.1: Make EnableBeaconRESTApi default to true ✅
 **Scope:** `config/features/config.go`, `config/features/flags.go`
-- Flip the feature flag default from false to true
-- All validator clients will now use REST by default
-- gRPC still available as fallback
+- ~~Flip the feature flag default from false to true~~ ✅
+- ~~All validator clients will now use REST by default~~ ✅
+- gRPC still available as fallback via `--enable-beacon-rest-api=false`
 - **Risk:** Medium — needs thorough testing. Run E2E tests.
 - **Prerequisite:** Verify all validator duties work via REST
 
@@ -176,9 +176,11 @@
 - **Risk:** Low
 
 ### PR 5.6: Remove EnableBeaconRESTApi feature flag
-**Scope:** `config/features/`
+**Scope:** `config/features/`, `testing/endtoend/types/`, `testing/endtoend/`
 - Flag no longer meaningful — REST is the only option
 - Clean up flag definition and config field
+- Remove `WithValidatorRESTApi()` E2E config option and `UseBeaconRestApi` field
+- Remove dedicated `TestEndToEnd_MinimalConfig_ValidatorRESTApi` test variants (redundant)
 - **Risk:** None
 
 ---
