@@ -407,7 +407,6 @@ func (s *Service) validatorEndpoints(
 func (s *Service) nodeEndpoints() []endpoint {
 	server := &node.Server{
 		BeaconDB:                  s.cfg.BeaconDB,
-		Server:                    s.grpcServer,
 		SyncChecker:               s.cfg.SyncService,
 		OptimisticModeFetcher:     s.cfg.OptimisticModeFetcher,
 		GenesisTimeFetcher:        s.cfg.GenesisTimeFetcher,

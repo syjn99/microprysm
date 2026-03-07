@@ -126,7 +126,7 @@
 - REST equivalents in `beacon-chain/rpc/eth/beacon/`
 - **Risk:** Medium
 
-### PR 4.4: Delete v1alpha1 gRPC node service implementation
+### PR 4.4: Delete v1alpha1 gRPC node service implementation ✅
 **Scope:** `beacon-chain/rpc/prysm/v1alpha1/node/` (~2 files)
 - REST equivalents in `beacon-chain/rpc/eth/node/`
 - **Risk:** Low
@@ -136,7 +136,7 @@
 - REST equivalents in `beacon-chain/rpc/eth/debug/`
 - **Risk:** Low
 
-### PR 4.6: Delete Health gRPC service (StreamBeaconLogs)
+### PR 4.6: Delete Health gRPC service (StreamBeaconLogs) ✅
 **Scope:** Health service in node server
 - REST equivalent: SSE events endpoint `/eth/v1/events`
 - Verify log streaming works via SSE or remove if not needed

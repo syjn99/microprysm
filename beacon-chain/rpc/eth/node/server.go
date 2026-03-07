@@ -9,7 +9,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/execution"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/p2p"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/sync"
-	"google.golang.org/grpc"
 )
 
 // Server defines a server implementation of the gRPC Node service,
@@ -18,7 +17,6 @@ import (
 type Server struct {
 	SyncChecker               sync.Checker
 	OptimisticModeFetcher     blockchain.OptimisticModeFetcher
-	Server                    *grpc.Server
 	BeaconDB                  db.ReadOnlyDatabase
 	PeersFetcher              p2p.PeersProvider
 	PeerManager               p2p.PeerManager
