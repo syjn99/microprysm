@@ -10,7 +10,7 @@
 
 ## Phase 1: Dead Code Cleanup (Low Risk)
 
-### PR 1.1: Delete dead gRPC attestation APIs
+### PR 1.1: Delete dead gRPC attestation APIs ✅ Complete ([PR #7](https://github.com/syjn99/microprysm/pull/7))
 **Scope:** Mirrors upstream #16410
 - Remove unused RPCs from `beacon_chain.proto`: ListAttestations, ListAttestationsElectra, ListIndexedAttestations, ListIndexedAttestationsElectra, AttestationPool, AttestationPoolElectra
 - Remove corresponding implementations in `beacon-chain/rpc/prysm/v1alpha1/beacon/attestations.go`
