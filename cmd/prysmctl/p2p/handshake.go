@@ -10,7 +10,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	libp2pcore "github.com/libp2p/go-libp2p/core"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var responseCodeSuccess = byte(0x00)
@@ -42,33 +41,33 @@ func (c *client) goodbyeHandler(_ context.Context, _ any, _ libp2pcore.Stream) e
 // This handler will disconnect any peer that does not match our fork version.
 func (c *client) statusRPCHandler(ctx context.Context, _ any, stream libp2pcore.Stream) error {
 	defer closeStream(stream)
-	chainHead, err := c.beaconClient.GetChainHead(ctx, &emptypb.Empty{})
+	head, err := c.getChainHead(ctx)
 	if err != nil {
 		return err
 	}
-	resp, err := c.nodeClient.GetGenesis(ctx, &emptypb.Empty{})
+	genesis, err := c.getGenesis(ctx)
 	if err != nil {
 		return err
 	}
-	currentSlot := slots.CurrentSlot(resp.GenesisTime.AsTime())
+	currentSlot := slots.CurrentSlot(genesis.GenesisTime)
 	currentEpoch := slots.ToEpoch(currentSlot)
 	digest := params.ForkDigest(currentEpoch)
-	kindOfFork, err := params.Fork(slots.ToEpoch(chainHead.HeadSlot))
+	kindOfFork, err := params.Fork(slots.ToEpoch(head.HeadSlot))
 	if err != nil {
 		return err
 	}
 	log.WithFields(logrus.Fields{
-		"genesisTime":  resp.GenesisTime.AsTime(),
+		"genesisTime":  genesis.GenesisTime,
 		"forkDigest":   digest,
 		"currentFork":  kindOfFork.CurrentVersion,
 		"previousFork": kindOfFork.PreviousVersion,
 	}).Info("Responding to status RPC handler")
 	status := &pb.Status{
 		ForkDigest:     digest[:],
-		FinalizedRoot:  chainHead.FinalizedBlockRoot,
-		FinalizedEpoch: chainHead.FinalizedEpoch,
-		HeadRoot:       chainHead.HeadBlockRoot,
-		HeadSlot:       chainHead.HeadSlot,
+		FinalizedRoot:  head.FinalizedRoot,
+		FinalizedEpoch: head.FinalizedEpoch,
+		HeadRoot:       head.HeadRoot,
+		HeadSlot:       head.HeadSlot,
 	}
 
 	if _, err := stream.Write([]byte{responseCodeSuccess}); err != nil {

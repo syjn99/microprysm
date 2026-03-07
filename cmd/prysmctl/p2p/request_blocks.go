@@ -19,7 +19,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var requestBlocksFlags = struct {
@@ -70,10 +69,10 @@ var requestBlocksCmd = &cli.Command{
 			Value:       13001,
 		},
 		&cli.StringFlag{
-			Name:        "prysm-api-endpoints",
-			Usage:       "comma-separated, gRPC API endpoint(s) for Prysm beacon node(s)",
+			Name:        "beacon-api-endpoints",
+			Usage:       "comma-separated, REST API endpoint(s) for Prysm beacon node(s)",
 			Destination: &requestBlocksFlags.APIEndpoints,
-			Value:       "localhost:4000",
+			Value:       "http://localhost:3500",
 		},
 		&cli.Uint64Flag{
 			Name:        "start-slot",
@@ -176,15 +175,15 @@ func cliActionRequestBlocks(cliCtx *cli.Context) error {
 	startSlot := primitives.Slot(requestBlocksFlags.StartSlot)
 	var headSlot *primitives.Slot
 	if startSlot == 0 {
-		headResp, err := c.beaconClient.GetChainHead(ctx, &emptypb.Empty{})
+		head, err := c.getChainHead(ctx)
 		if err != nil {
 			return err
 		}
-		startSlot, err = slots.EpochStart(headResp.HeadEpoch.Sub(1))
+		startSlot, err = slots.EpochStart(slots.ToEpoch(head.HeadSlot).Sub(1))
 		if err != nil {
 			return err
 		}
-		headSlot = &headResp.HeadSlot
+		headSlot = &head.HeadSlot
 	}
 
 	// Submit requests.

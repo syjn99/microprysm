@@ -56,13 +56,13 @@
 - gateway.ssz.go
 
 ### tools/ (Phase 2.1)
-- tools/forkchecker/forkchecker.go (delete or rewrite)
+- ~~tools/forkchecker/forkchecker.go~~ ✅ DELETED (PR #5)
 
 ## Files to MODIFY
 
 ### Phase 2
 - cmd/prysmctl/p2p/client.go — rewrite to REST
-- cmd/validator/accounts/exit.go — rewrite to REST
+- cmd/validator/accounts/exit.go — ✅ rewritten to REST (PR #9)
 
 ### Phase 3
 - config/features/config.go — flip/remove EnableBeaconRESTApi
