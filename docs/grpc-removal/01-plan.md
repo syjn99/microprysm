@@ -78,10 +78,10 @@
 - Remove gRPC fallback wrappers (NewNodeClientWithFallback, NewBeaconApiChainClientWithFallback)
 - **Risk:** Medium — REST must handle all cases
 
-### PR 3.3: Delete validator gRPC client implementations
+### PR 3.3: Delete validator gRPC client implementations ✅
 **Scope:** `validator/client/grpc-api/` (entire directory)
-- Delete: grpc_validator_client.go, grpc_node_client.go, grpc_beacon_chain_client.go, grpc_prysm_beacon_chain_client.go, grpc_client_manager.go
-- Delete corresponding test files
+- ~~Delete: grpc_validator_client.go, grpc_node_client.go, grpc_beacon_chain_client.go, grpc_prysm_beacon_chain_client.go, grpc_client_manager.go~~ ✅
+- ~~Delete corresponding test files~~ ✅
 - **Risk:** Low after PR 3.2 (no remaining references)
 
 ### PR 3.4: Remove gRPC from validator connection setup
