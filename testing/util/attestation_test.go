@@ -5,7 +5,6 @@ import (
 
 	fieldparams "github.com/OffchainLabs/prysm/v7/config/fieldparams"
 	"github.com/OffchainLabs/prysm/v7/config/params"
-	v1 "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
 )
@@ -19,22 +18,6 @@ func TestHydrateAttestation(t *testing.T) {
 
 func TestHydrateAttestationData(t *testing.T) {
 	d := HydrateAttestationData(&ethpb.AttestationData{})
-	_, err := d.HashTreeRoot()
-	require.NoError(t, err)
-	require.DeepEqual(t, d.BeaconBlockRoot, make([]byte, fieldparams.RootLength))
-	require.DeepEqual(t, d.Target.Root, make([]byte, fieldparams.RootLength))
-	require.DeepEqual(t, d.Source.Root, make([]byte, fieldparams.RootLength))
-}
-
-func TestHydrateV1Attestation(t *testing.T) {
-	a := HydrateV1Attestation(&v1.Attestation{})
-	_, err := a.HashTreeRoot()
-	require.NoError(t, err)
-	require.DeepEqual(t, a.Signature, make([]byte, fieldparams.BLSSignatureLength))
-}
-
-func TestHydrateV1AttestationData(t *testing.T) {
-	d := HydrateV1AttestationData(&v1.AttestationData{})
 	_, err := d.HashTreeRoot()
 	require.NoError(t, err)
 	require.DeepEqual(t, d.BeaconBlockRoot, make([]byte, fieldparams.RootLength))

@@ -16,7 +16,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/crypto/bls"
 	"github.com/OffchainLabs/prysm/v7/crypto/rand"
-	attv1 "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
@@ -332,22 +331,6 @@ func HydrateSingleAttestation(a *ethpb.SingleAttestation) *ethpb.SingleAttestati
 	return a
 }
 
-// HydrateV1Attestation hydrates a v1 attestation object with correct field length sizes
-// to comply with fssz marshalling and unmarshalling rules.
-func HydrateV1Attestation(a *attv1.Attestation) *attv1.Attestation {
-	if a.Signature == nil {
-		a.Signature = make([]byte, 96)
-	}
-	if a.AggregationBits == nil {
-		a.AggregationBits = make([]byte, 1)
-	}
-	if a.Data == nil {
-		a.Data = &attv1.AttestationData{}
-	}
-	a.Data = HydrateV1AttestationData(a.Data)
-	return a
-}
-
 // HydrateAttestationData hydrates an attestation data object with correct field length sizes
 // to comply with fssz marshalling and unmarshalling rules.
 func HydrateAttestationData(d *ethpb.AttestationData) *ethpb.AttestationData {
@@ -362,27 +345,6 @@ func HydrateAttestationData(d *ethpb.AttestationData) *ethpb.AttestationData {
 	}
 	if d.Source == nil {
 		d.Source = &ethpb.Checkpoint{}
-	}
-	if d.Source.Root == nil {
-		d.Source.Root = make([]byte, fieldparams.RootLength)
-	}
-	return d
-}
-
-// HydrateV1AttestationData hydrates a v1 attestation data object with correct field length sizes
-// to comply with fssz marshalling and unmarshalling rules.
-func HydrateV1AttestationData(d *attv1.AttestationData) *attv1.AttestationData {
-	if d.BeaconBlockRoot == nil {
-		d.BeaconBlockRoot = make([]byte, fieldparams.RootLength)
-	}
-	if d.Target == nil {
-		d.Target = &attv1.Checkpoint{}
-	}
-	if d.Target.Root == nil {
-		d.Target.Root = make([]byte, fieldparams.RootLength)
-	}
-	if d.Source == nil {
-		d.Source = &attv1.Checkpoint{}
 	}
 	if d.Source.Root == nil {
 		d.Source.Root = make([]byte, fieldparams.RootLength)

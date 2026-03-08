@@ -11,7 +11,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/consensus-types/blocks"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
-	ethpbv1 "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	ethpbalpha "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
 )
@@ -195,17 +194,6 @@ func TestGenerateFullBlock_ValidVoluntaryExits(t *testing.T) {
 func TestHydrateSignedBeaconBlock_NoError(t *testing.T) {
 	b := &ethpbalpha.SignedBeaconBlock{}
 	b = HydrateSignedBeaconBlock(b)
-	_, err := b.HashTreeRoot()
-	require.NoError(t, err)
-	_, err = b.Block.HashTreeRoot()
-	require.NoError(t, err)
-	_, err = b.Block.Body.HashTreeRoot()
-	require.NoError(t, err)
-}
-
-func TestHydrateV1SignedBeaconBlock_NoError(t *testing.T) {
-	b := &ethpbv1.SignedBeaconBlock{}
-	b = HydrateV1SignedBeaconBlock(b)
 	_, err := b.HashTreeRoot()
 	require.NoError(t, err)
 	_, err = b.Block.HashTreeRoot()
