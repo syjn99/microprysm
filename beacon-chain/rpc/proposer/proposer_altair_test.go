@@ -54,15 +54,15 @@ func TestProposer_GetSyncAggregate_OK(t *testing.T) {
 
 	aggregate, err := proposerServer.getSyncAggregate(t.Context(), 1, bytesutil.ToBytes32(conts[0].BlockRoot), st)
 	require.NoError(t, err)
-	require.DeepEqual(t, bitfield.Bitvector32{0xf, 0xf, 0xf, 0xf}, aggregate.SyncCommitteeBits)
+	require.DeepSSZEqual(t, bitfield.Bitvector32{0xf, 0xf, 0xf, 0xf}, aggregate.SyncCommitteeBits)
 
 	aggregate, err = proposerServer.getSyncAggregate(t.Context(), 2, bytesutil.ToBytes32(conts[0].BlockRoot), st)
 	require.NoError(t, err)
-	require.DeepEqual(t, bitfield.Bitvector32{0xaa, 0xaa, 0xaa, 0xaa}, aggregate.SyncCommitteeBits)
+	require.DeepSSZEqual(t, bitfield.Bitvector32{0xaa, 0xaa, 0xaa, 0xaa}, aggregate.SyncCommitteeBits)
 
 	aggregate, err = proposerServer.getSyncAggregate(t.Context(), 3, bytesutil.ToBytes32(conts[0].BlockRoot), st)
 	require.NoError(t, err)
-	require.DeepEqual(t, bitfield.NewBitvector32(), aggregate.SyncCommitteeBits)
+	require.DeepSSZEqual(t, bitfield.NewBitvector32(), aggregate.SyncCommitteeBits)
 }
 
 func TestServer_SetSyncAggregate_EmptyCase(t *testing.T) {
