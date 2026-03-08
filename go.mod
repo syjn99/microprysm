@@ -28,8 +28,6 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/gostaticanalysis/comment v1.4.2
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/herumi/bls-eth-go-binary v1.31.0
 	github.com/holiman/uint256 v1.3.2
@@ -79,7 +77,6 @@ require (
 	github.com/wealdtech/go-eth2-util v1.6.3
 	github.com/wealdtech/go-eth2-wallet-encryptor-keystorev4 v1.1.3
 	go.etcd.io/bbolt v1.3.6
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.34.0

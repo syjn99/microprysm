@@ -942,26 +942,17 @@ func (b *BeaconNode) registerRPCService(router *http.ServeMux) error {
 	depositFetcher := b.depositCache
 	chainStartFetcher := web3Service
 
-	host := b.cliCtx.String(flags.RPCHost.Name)
-	port := b.cliCtx.String(flags.RPCPort.Name)
 	beaconMonitoringHost := b.cliCtx.String(cmd.MonitoringHostFlag.Name)
 	beaconMonitoringPort := b.cliCtx.Int(flags.MonitoringPortFlag.Name)
-	cert := b.cliCtx.String(flags.CertFlag.Name)
-	key := b.cliCtx.String(flags.KeyFlag.Name)
 	mockEth1DataVotes := b.cliCtx.Bool(flags.InteropMockEth1DataVotesFlag.Name)
-	maxMsgSize := b.cliCtx.Int(cmd.GrpcMaxCallRecvMsgSizeFlag.Name)
 	enableDebugRPCEndpoints := !b.cliCtx.Bool(flags.DisableDebugRPCEndpoints.Name)
 
 	p2pService := b.fetchP2P()
 	rpcService := rpc.NewService(b.ctx, &rpc.Config{
 		ExecutionEngineCaller:            web3Service,
 		ExecutionReconstructor:           web3Service,
-		Host:                             host,
-		Port:                             port,
 		BeaconMonitoringHost:             beaconMonitoringHost,
 		BeaconMonitoringPort:             beaconMonitoringPort,
-		CertFlag:                         cert,
-		KeyFlag:                          key,
 		BeaconDB:                         b.db,
 		Broadcaster:                      p2pService,
 		PeersFetcher:                     p2pService,
@@ -999,7 +990,6 @@ func (b *BeaconNode) registerRPCService(router *http.ServeMux) error {
 		OperationNotifier:                b,
 		StateGen:                         b.stateGen,
 		EnableDebugRPCEndpoints:          enableDebugRPCEndpoints,
-		MaxMsgSize:                       maxMsgSize,
 		BlockBuilder:                     b.fetchBuilderService(),
 		Router:                           router,
 		ClockWaiter:                      b.ClockWaiter,

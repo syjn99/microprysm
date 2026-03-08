@@ -104,8 +104,6 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    eth_network = "minimal",
-    tags = ["minimal"],
     srcs = [
         "construct_generic_block_test.go",
         "proposer_altair_test.go",
@@ -114,6 +112,7 @@ go_test(
         "proposer_bellatrix_test.go",
         "proposer_bid_test.go",
         "proposer_builder_test.go",
+        "proposer_deneb_bench_test.go",
         "proposer_deneb_test.go",
         "proposer_deposits_test.go",
         "proposer_empty_block_test.go",
@@ -125,9 +124,12 @@ go_test(
         "proposer_slashings_test.go",
         "proposer_sync_aggregate_test.go",
         "proposer_test.go",
+        "proposer_utils_bench_test.go",
         "unblinder_test.go",
     ],
     embed = [":go_default_library"],
+    eth_network = "minimal",
+    tags = ["minimal"],
     deps = [
         "//api/client/builder:go_default_library",
         "//beacon-chain/blockchain/kzg:go_default_library",
@@ -175,6 +177,7 @@ go_test(
         "//proto/prysm/v1alpha1:go_default_library",
         "//proto/prysm/v1alpha1/attestation:go_default_library",
         "//proto/prysm/v1alpha1/attestation/aggregation/attestations:go_default_library",
+        "//proto/prysm/v1alpha1/attestation/aggregation/testing:go_default_library",
         "//runtime/version:go_default_library",
         "//testing/assert:go_default_library",
         "//testing/require:go_default_library",
