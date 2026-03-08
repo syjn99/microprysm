@@ -64,6 +64,18 @@ func LogStream(
 	return strm, err
 }
 
+// NoOpClientStream is a grpc.ClientStream implementation with no-op methods.
+// Use it to satisfy interfaces that embed grpc.ClientStream when only specific
+// methods (like Recv) are actually needed, e.g. in HTTP-based beacon API clients.
+type NoOpClientStream struct{}
+
+func (NoOpClientStream) Header() (metadata.MD, error) { return nil, nil }
+func (NoOpClientStream) Trailer() metadata.MD         { return nil }
+func (NoOpClientStream) CloseSend() error             { return nil }
+func (NoOpClientStream) Context() context.Context     { return context.Background() }
+func (NoOpClientStream) SendMsg(any) error            { return nil }
+func (NoOpClientStream) RecvMsg(any) error            { return nil }
+
 // AppendHeaders parses the provided GRPC headers
 // and attaches them to the provided context.
 func AppendHeaders(parent context.Context, headers []string) context.Context {

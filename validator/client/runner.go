@@ -6,18 +6,19 @@ import (
 	"sync"
 	"time"
 
+	"net/http"
+
 	"github.com/OffchainLabs/prysm/v7/api/client"
 	fieldparams "github.com/OffchainLabs/prysm/v7/config/fieldparams"
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
 	prysmTrace "github.com/OffchainLabs/prysm/v7/monitoring/tracing/trace"
+	"github.com/OffchainLabs/prysm/v7/network/httputil"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/OffchainLabs/prysm/v7/validator/client/iface"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // Time to wait before trying to reconnect with beacon node.
@@ -288,7 +289,10 @@ func isConnectionError(err error) bool {
 func handleAssignmentError(err error, slot primitives.Slot) {
 	if errors.Is(err, ErrValidatorsAllExited) {
 		log.Warn(ErrValidatorsAllExited)
-	} else if errCode, ok := status.FromError(err); ok && errCode.Code() == codes.NotFound {
+		return
+	}
+	jsonErr := &httputil.DefaultJsonError{}
+	if errors.As(err, &jsonErr) && jsonErr.Code == http.StatusNotFound {
 		log.WithField(
 			"epoch", slot/params.BeaconConfig().SlotsPerEpoch,
 		).Warn("Validator not yet assigned to epoch")

@@ -17,8 +17,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // SubmitAggregateAndProof submits the validator's signed slot signature to the beacon node
@@ -261,14 +259,8 @@ func (v *validator) aggregateAndProofSig(ctx context.Context, pubKey [fieldparam
 }
 
 func (v *validator) handleSubmitAggSelectionProofError(err error, slot primitives.Slot, hexPubkey string) {
-	// handle grpc not found
-	s, ok := status.FromError(err)
-	grpcNotFound := ok && s.Code() == codes.NotFound
-	// handle http not found
 	jsonErr := &httputil.DefaultJsonError{}
-	httpNotFound := errors.As(err, &jsonErr) && jsonErr.Code == http.StatusNotFound
-
-	if grpcNotFound || httpNotFound {
+	if errors.As(err, &jsonErr) && jsonErr.Code == http.StatusNotFound {
 		log.WithField("slot", slot).WithError(err).Warn("No attestations to aggregate")
 	} else {
 		log.WithField("slot", slot).WithError(err).Error("Could not submit aggregate selection proof to beacon node")
