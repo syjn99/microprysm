@@ -2,6 +2,7 @@ package validator
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,20 +19,23 @@ import (
 	"github.com/OffchainLabs/prysm/v7/network/httputil"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/assert"
-	mock2 "github.com/OffchainLabs/prysm/v7/testing/mock"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"go.uber.org/mock/gomock"
 )
 
+type mockBlockProducer struct {
+	getBeaconBlockFunc func(ctx context.Context, req *eth.BlockRequest) (*eth.GenericBeaconBlock, error)
+}
+
+func (m *mockBlockProducer) GetBeaconBlock(ctx context.Context, req *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
+	if m.getBeaconBlockFunc != nil {
+		return m.getBeaconBlockFunc(ctx, req)
+	}
+	return nil, nil
+}
+
 func TestProduceBlockV3(t *testing.T) {
-	ctrl := gomock.NewController(t)
 	randao := "0x1b66ac1fb663c9bc59509846d6ec05345bd908eda73e670af888da41af171505cc411d61252fb6cb3fa0017b679f8bb2305b26a285fa2737f175668d0dff91cc1b66ac1fb663c9bc59509846d6ec05345bd908eda73e670af888da41af171505"
 	graffiti := "0xcf8e0d4e9587369b2301d0790347320302cc0943d5a1884560367e8208d920f2"
-	bRandao, err := hexutil.Decode(randao)
-	require.NoError(t, err)
-	bGraffiti, err := hexutil.Decode(graffiti)
-	require.NoError(t, err)
 	chainService := &blockchainTesting.ChainService{}
 	syncChecker := &mockSync.Sync{IsSyncing: false}
 	rewardFetcher := &rewardtesting.MockBlockRewardFetcher{Rewards: &structs.BlockRewards{Total: "10"}}
@@ -42,19 +46,11 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
-				return block.Message.ToGeneric()
-			}())
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    syncChecker,
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
+				return block.Message.ToGeneric()
+			}},
+			SyncChecker: syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://foo.example/eth/v3/validator/blocks/1?randao_reveal=%s&graffiti=%s", randao, graffiti), nil)
 		writer := httptest.NewRecorder()
@@ -76,19 +72,11 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 
 				return block.Message.ToGeneric()
-			}())
-		server := &Server{
-			ProposerServer:     v1alpha1Server,
+			}},
 			SyncChecker:        syncChecker,
 			BlockRewardFetcher: rewardFetcher,
 		}
@@ -111,21 +99,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -149,21 +129,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -187,21 +159,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -225,21 +189,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				g, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				g.PayloadValue = "2000"
 				return g, err
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -263,21 +219,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.ToUnsigned())
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -301,21 +249,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -339,21 +279,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.ToUnsigned())
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -377,21 +309,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -415,21 +339,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.ToUnsigned())
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -453,21 +369,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.Message)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -486,9 +394,8 @@ func TestProduceBlockV3(t *testing.T) {
 		require.Equal(t, "10000000000", writer.Header().Get(api.ConsensusBlockValueHeader))
 	})
 	t.Run("invalid query parameter slot empty", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
 		server := &Server{
-			ProposerServer: v1alpha1Server,
+			ProposerServer: &mockBlockProducer{},
 			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 		request := httptest.NewRequest(http.MethodGet, "http://foo.example/eth/v3/validator/blocks/", nil)
@@ -499,9 +406,8 @@ func TestProduceBlockV3(t *testing.T) {
 		assert.Equal(t, true, strings.Contains(writer.Body.String(), "slot is required"))
 	})
 	t.Run("invalid query parameter slot invalid", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
 		server := &Server{
-			ProposerServer: v1alpha1Server,
+			ProposerServer: &mockBlockProducer{},
 			SyncChecker:    syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, "http://foo.example/eth/v3/validator/blocks/asdfsad", nil)
@@ -512,9 +418,8 @@ func TestProduceBlockV3(t *testing.T) {
 		assert.Equal(t, true, strings.Contains(writer.Body.String(), "slot is invalid"))
 	})
 	t.Run("invalid query parameter randao_reveal invalid", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
 		server := &Server{
-			ProposerServer: v1alpha1Server,
+			ProposerServer: &mockBlockProducer{},
 			SyncChecker:    syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, "http://foo.example/eth/v3/validator/blocks/1?randao_reveal=0x213123", nil)
@@ -546,21 +451,13 @@ func TestProduceBlockV3(t *testing.T) {
 		require.NoError(t, err)
 		jsonBytes, err := json.Marshal(block.ToUnsigned())
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -581,13 +478,8 @@ func TestProduceBlockV3(t *testing.T) {
 }
 
 func TestProduceBlockV3SSZ(t *testing.T) {
-	ctrl := gomock.NewController(t)
 	randao := "0x1b66ac1fb663c9bc59509846d6ec05345bd908eda73e670af888da41af171505cc411d61252fb6cb3fa0017b679f8bb2305b26a285fa2737f175668d0dff91cc1b66ac1fb663c9bc59509846d6ec05345bd908eda73e670af888da41af171505"
 	graffiti := "0xcf8e0d4e9587369b2301d0790347320302cc0943d5a1884560367e8208d920f2"
-	bRandao, err := hexutil.Decode(randao)
-	require.NoError(t, err)
-	bGraffiti, err := hexutil.Decode(graffiti)
-	require.NoError(t, err)
 	chainService := &blockchainTesting.ChainService{}
 	syncChecker := &mockSync.Sync{IsSyncing: false}
 	rewardFetcher := &rewardtesting.MockBlockRewardFetcher{Rewards: &structs.BlockRewards{Total: "10"}}
@@ -596,19 +488,11 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlock
 		err := json.Unmarshal([]byte(rpctesting.Phase0Block), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
-				return block.Message.ToGeneric()
-			}())
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    syncChecker,
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
+				return block.Message.ToGeneric()
+			}},
+			SyncChecker: syncChecker,
 		}
 		request := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://foo.example/eth/v3/validator/blocks/1?randao_reveal=%s&graffiti=%s", randao, graffiti), nil)
 		request.Header.Set("Accept", api.OctetStreamMediaType)
@@ -632,19 +516,11 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlockAltair
 		err := json.Unmarshal([]byte(rpctesting.AltairBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
-				return block.Message.ToGeneric()
-			}())
 
 		server := &Server{
-			ProposerServer:     v1alpha1Server,
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
+				return block.Message.ToGeneric()
+			}},
 			SyncChecker:        syncChecker,
 			BlockRewardFetcher: rewardFetcher,
 		}
@@ -670,22 +546,14 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlockBellatrix
 		err := json.Unmarshal([]byte(rpctesting.BellatrixBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		mockChainService := &blockchainTesting.ChainService{}
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		mockChainService := &blockchainTesting.ChainService{}
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: mockChainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -712,21 +580,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBlindedBeaconBlockBellatrix
 		err := json.Unmarshal([]byte(rpctesting.BlindedBellatrixBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -753,21 +613,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlockCapella
 		err := json.Unmarshal([]byte(rpctesting.CapellaBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -794,21 +646,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBlindedBeaconBlockCapella
 		err := json.Unmarshal([]byte(rpctesting.BlindedCapellaBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				g, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				g.PayloadValue = "2000"
 				return g, err
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -835,21 +679,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlockContentsDeneb
 		err := json.Unmarshal([]byte(rpctesting.DenebBlockContents), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -876,21 +712,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBlindedBeaconBlockDeneb
 		err := json.Unmarshal([]byte(rpctesting.BlindedDenebBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -917,21 +745,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlockContentsElectra
 		err := json.Unmarshal([]byte(rpctesting.ElectraBlockContents), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -958,21 +778,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBlindedBeaconBlockElectra
 		err := json.Unmarshal([]byte(rpctesting.BlindedElectraBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -999,21 +811,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlockContentsFulu
 		err := json.Unmarshal([]byte(rpctesting.FuluBlockContents), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -1040,21 +844,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBlindedBeaconBlockFulu
 		err := json.Unmarshal([]byte(rpctesting.BlindedFuluBlock), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.Message.ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,
@@ -1083,21 +879,13 @@ func TestProduceBlockV3SSZ(t *testing.T) {
 		var block *structs.SignedBeaconBlockContentsFulu
 		err := json.Unmarshal([]byte(rpctesting.FuluBlockContents), &block)
 		require.NoError(t, err)
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().GetBeaconBlock(gomock.Any(), &eth.BlockRequest{
-			Slot:         1,
-			RandaoReveal: bRandao,
-			Graffiti:     bGraffiti,
-			SkipMevBoost: false,
-		}).Return(
-			func() (*eth.GenericBeaconBlock, error) {
+		server := &Server{
+			ProposerServer: &mockBlockProducer{getBeaconBlockFunc: func(_ context.Context, _ *eth.BlockRequest) (*eth.GenericBeaconBlock, error) {
 				b, err := block.ToUnsigned().ToGeneric()
 				require.NoError(t, err)
 				b.PayloadValue = "2000"
 				return b, nil
-			}())
-		server := &Server{
-			ProposerServer:        v1alpha1Server,
+			}},
 			SyncChecker:           syncChecker,
 			OptimisticModeFetcher: chainService,
 			BlockRewardFetcher:    rewardFetcher,

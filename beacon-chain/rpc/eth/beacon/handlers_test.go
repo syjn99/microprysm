@@ -38,7 +38,6 @@ import (
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
 	"github.com/OffchainLabs/prysm/v7/testing/assert"
-	mock2 "github.com/OffchainLabs/prysm/v7/testing/mock"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
 	"github.com/OffchainLabs/prysm/v7/testing/util"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
@@ -46,9 +45,18 @@ import (
 	"github.com/pkg/errors"
 	ssz "github.com/prysmaticlabs/fastssz"
 	logTest "github.com/sirupsen/logrus/hooks/test"
-	"github.com/stretchr/testify/mock"
-	"go.uber.org/mock/gomock"
 )
+
+type mockBlockProposer struct {
+	proposeFunc func(ctx context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error)
+}
+
+func (m *mockBlockProposer) ProposeBeaconBlock(ctx context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+	if m.proposeFunc != nil {
+		return m.proposeFunc(ctx, req)
+	}
+	return nil, nil
+}
 
 // fillGloasBlockTestData populates a Gloas block with non-zero test values for the
 // Gloas-specific fields: SignedExecutionPayloadBid and PayloadAttestations.
@@ -1530,20 +1538,18 @@ func TestVersionHeaderFromRequest(t *testing.T) {
 }
 
 func TestPublishBlockV2(t *testing.T) {
-	ctrl := gomock.NewController(t)
 	t.Run("Phase 0", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
-			var signedblock *structs.SignedBeaconBlock
-			err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
+				var signedblock *structs.SignedBeaconBlock
+				err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.Phase0Block)))
@@ -1554,18 +1560,17 @@ func TestPublishBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Altair", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
-			var signedblock *structs.SignedBeaconBlockAltair
-			err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
+				var signedblock *structs.SignedBeaconBlockAltair
+				err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.AltairBlock)))
@@ -1576,20 +1581,19 @@ func TestPublishBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Bellatrix", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Bellatrix)
-			converted, err := structs.BeaconBlockBellatrixFromConsensus(block.Bellatrix.Block)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBeaconBlockBellatrix
-			err = json.Unmarshal([]byte(rpctesting.BellatrixBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Bellatrix)
+				converted, err := structs.BeaconBlockBellatrixFromConsensus(block.Bellatrix.Block)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBeaconBlockBellatrix
+				err = json.Unmarshal([]byte(rpctesting.BellatrixBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BellatrixBlock)))
@@ -1600,20 +1604,19 @@ func TestPublishBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Capella", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Capella)
-			converted, err := structs.BeaconBlockCapellaFromConsensus(block.Capella.Block)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBeaconBlockCapella
-			err = json.Unmarshal([]byte(rpctesting.CapellaBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Capella)
+				converted, err := structs.BeaconBlockCapellaFromConsensus(block.Capella.Block)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBeaconBlockCapella
+				err = json.Unmarshal([]byte(rpctesting.CapellaBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.CapellaBlock)))
@@ -1624,20 +1627,19 @@ func TestPublishBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Deneb", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Deneb)
-			converted, err := structs.SignedBeaconBlockContentsDenebFromConsensus(block.Deneb)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBeaconBlockContentsDeneb
-			err = json.Unmarshal([]byte(rpctesting.DenebBlockContents), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Deneb)
+				converted, err := structs.SignedBeaconBlockContentsDenebFromConsensus(block.Deneb)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBeaconBlockContentsDeneb
+				err = json.Unmarshal([]byte(rpctesting.DenebBlockContents), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.DenebBlockContents)))
@@ -1648,20 +1650,19 @@ func TestPublishBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Electra", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Electra)
-			converted, err := structs.SignedBeaconBlockContentsElectraFromConsensus(block.Electra)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBeaconBlockContentsElectra
-			err = json.Unmarshal([]byte(rpctesting.ElectraBlockContents), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Electra)
+				converted, err := structs.SignedBeaconBlockContentsElectraFromConsensus(block.Electra)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBeaconBlockContentsElectra
+				err = json.Unmarshal([]byte(rpctesting.ElectraBlockContents), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.ElectraBlockContents)))
@@ -1672,20 +1673,19 @@ func TestPublishBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Fulu", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Fulu)
-			converted, err := structs.SignedBeaconBlockContentsFuluFromConsensus(block.Fulu)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBeaconBlockContentsFulu
-			err = json.Unmarshal([]byte(rpctesting.FuluBlockContents), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Fulu)
+				converted, err := structs.SignedBeaconBlockContentsFuluFromConsensus(block.Fulu)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBeaconBlockContentsFulu
+				err = json.Unmarshal([]byte(rpctesting.FuluBlockContents), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.FuluBlockContents)))
@@ -1753,20 +1753,18 @@ func TestPublishBlockV2(t *testing.T) {
 }
 
 func TestPublishBlockV2SSZ(t *testing.T) {
-	ctrl := gomock.NewController(t)
 	t.Run("Phase 0", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
-			var signedblock *structs.SignedBeaconBlock
-			err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
+				var signedblock *structs.SignedBeaconBlock
+				err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlock
@@ -1785,18 +1783,17 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Altair", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
-			var signedblock *structs.SignedBeaconBlockAltair
-			err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
+				var signedblock *structs.SignedBeaconBlockAltair
+				err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockAltair
@@ -1815,14 +1812,13 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Bellatrix", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Bellatrix)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Bellatrix)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 		var blk structs.SignedBeaconBlockBellatrix
 		err := json.Unmarshal([]byte(rpctesting.BellatrixBlock), &blk)
@@ -1840,14 +1836,13 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Capella", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Capella)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Capella)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockCapella
@@ -1866,14 +1861,13 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Deneb", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Deneb)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Deneb)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockContentsDeneb
@@ -1892,14 +1886,13 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Electra", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Electra)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Electra)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockContentsElectra
@@ -1918,14 +1911,13 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Fulu", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Fulu)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_Fulu)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockContentsFulu
@@ -2018,20 +2010,18 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 }
 
 func TestPublishBlindedBlockV2(t *testing.T) {
-	ctrl := gomock.NewController(t)
 	t.Run("Phase 0", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
-			var signedblock *structs.SignedBeaconBlock
-			err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
+				var signedblock *structs.SignedBeaconBlock
+				err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.Phase0Block)))
@@ -2042,18 +2032,17 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Altair", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
-			var signedblock *structs.SignedBeaconBlockAltair
-			err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
+				var signedblock *structs.SignedBeaconBlockAltair
+				err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.AltairBlock)))
@@ -2064,20 +2053,19 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Blinded Bellatrix", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedBellatrix)
-			converted, err := structs.BlindedBeaconBlockBellatrixFromConsensus(block.BlindedBellatrix.Block)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBlindedBeaconBlockBellatrix
-			err = json.Unmarshal([]byte(rpctesting.BlindedBellatrixBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedBellatrix)
+				converted, err := structs.BlindedBeaconBlockBellatrixFromConsensus(block.BlindedBellatrix.Block)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBlindedBeaconBlockBellatrix
+				err = json.Unmarshal([]byte(rpctesting.BlindedBellatrixBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedBellatrixBlock)))
@@ -2088,20 +2076,19 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Blinded Capella", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedCapella)
-			converted, err := structs.BlindedBeaconBlockCapellaFromConsensus(block.BlindedCapella.Block)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBlindedBeaconBlockCapella
-			err = json.Unmarshal([]byte(rpctesting.BlindedCapellaBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedCapella)
+				converted, err := structs.BlindedBeaconBlockCapellaFromConsensus(block.BlindedCapella.Block)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBlindedBeaconBlockCapella
+				err = json.Unmarshal([]byte(rpctesting.BlindedCapellaBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedCapellaBlock)))
@@ -2112,20 +2099,19 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Blinded Deneb", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedDeneb)
-			converted, err := structs.BlindedBeaconBlockDenebFromConsensus(block.BlindedDeneb.Message)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBlindedBeaconBlockDeneb
-			err = json.Unmarshal([]byte(rpctesting.BlindedDenebBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedDeneb)
+				converted, err := structs.BlindedBeaconBlockDenebFromConsensus(block.BlindedDeneb.Message)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBlindedBeaconBlockDeneb
+				err = json.Unmarshal([]byte(rpctesting.BlindedDenebBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedDenebBlock)))
@@ -2136,20 +2122,19 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Blinded Electra", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedElectra)
-			converted, err := structs.BlindedBeaconBlockElectraFromConsensus(block.BlindedElectra.Message)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBlindedBeaconBlockElectra
-			err = json.Unmarshal([]byte(rpctesting.BlindedElectraBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedElectra)
+				converted, err := structs.BlindedBeaconBlockElectraFromConsensus(block.BlindedElectra.Message)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBlindedBeaconBlockElectra
+				err = json.Unmarshal([]byte(rpctesting.BlindedElectraBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedElectraBlock)))
@@ -2160,20 +2145,19 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Blinded Fulu", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedFulu)
-			converted, err := structs.BlindedBeaconBlockFuluFromConsensus(block.BlindedFulu.Message)
-			require.NoError(t, err)
-			var signedblock *structs.SignedBlindedBeaconBlockFulu
-			err = json.Unmarshal([]byte(rpctesting.BlindedFuluBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, converted, signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedFulu)
+				converted, err := structs.BlindedBeaconBlockFuluFromConsensus(block.BlindedFulu.Message)
+				require.NoError(t, err)
+				var signedblock *structs.SignedBlindedBeaconBlockFulu
+				err = json.Unmarshal([]byte(rpctesting.BlindedFuluBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, converted, signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedFuluBlock)))
@@ -2240,20 +2224,18 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 }
 
 func TestPublishBlindedBlockV2SSZ(t *testing.T) {
-	ctrl := gomock.NewController(t)
 	t.Run("Phase 0", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
-			var signedblock *structs.SignedBeaconBlock
-			err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Phase0)
+				var signedblock *structs.SignedBeaconBlock
+				err := json.Unmarshal([]byte(rpctesting.Phase0Block), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockFromConsensus(block.Phase0.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlock
@@ -2272,18 +2254,17 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Altair", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
-			var signedblock *structs.SignedBeaconBlockAltair
-			err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
-			require.NoError(t, err)
-			require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				block, ok := req.Block.(*eth.GenericSignedBeaconBlock_Altair)
+				var signedblock *structs.SignedBeaconBlockAltair
+				err := json.Unmarshal([]byte(rpctesting.AltairBlock), &signedblock)
+				require.NoError(t, err)
+				require.DeepEqual(t, structs.BeaconBlockAltairFromConsensus(block.Altair.Block), signedblock.Message)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockAltair
@@ -2302,14 +2283,13 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Bellatrix", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedBellatrix)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedBellatrix)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockBellatrix
@@ -2328,14 +2308,13 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Capella", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedCapella)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedCapella)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockCapella
@@ -2354,14 +2333,13 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Deneb", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedDeneb)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedDeneb)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockDeneb
@@ -2380,14 +2358,13 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Electra", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedElectra)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedElectra)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockElectra
@@ -2406,14 +2383,13 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 		assert.Equal(t, http.StatusOK, writer.Code)
 	})
 	t.Run("Fulu", func(t *testing.T) {
-		v1alpha1Server := mock2.NewMockBeaconNodeValidatorServer(ctrl)
-		v1alpha1Server.EXPECT().ProposeBeaconBlock(gomock.Any(), mock.MatchedBy(func(req *eth.GenericSignedBeaconBlock) bool {
-			_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedFulu)
-			return ok
-		}))
 		server := &Server{
-			ProposerServer: v1alpha1Server,
-			SyncChecker:    &mockSync.Sync{IsSyncing: false},
+			ProposerServer: &mockBlockProposer{proposeFunc: func(_ context.Context, req *eth.GenericSignedBeaconBlock) (*eth.ProposeResponse, error) {
+				_, ok := req.Block.(*eth.GenericSignedBeaconBlock_BlindedFulu)
+				require.Equal(t, true, ok)
+				return nil, nil
+			}},
+			SyncChecker: &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockFulu
