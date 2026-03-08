@@ -3,12 +3,11 @@ name: Bazel E2E Tests
 on:
   push:
     branches: [develop]
-  pull_request:
+  merge_group:
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'pull_request' && 'e2e' || '' }}
     container:
       image: syjn99/bazel-toolchain:latest
     permissions:
