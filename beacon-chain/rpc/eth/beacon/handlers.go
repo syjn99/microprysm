@@ -19,7 +19,7 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/db/filters"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/helpers"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/shared"
-	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/validator"
+	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/proposer"
 	fieldparams "github.com/OffchainLabs/prysm/v7/config/fieldparams"
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/blocks"
@@ -879,7 +879,7 @@ func broadcastSidecarsIfSupported(ctx context.Context, s *Server, b interfaces.S
 }
 
 func (s *Server) proposeBlock(ctx context.Context, w http.ResponseWriter, blk *eth.GenericSignedBeaconBlock) {
-	_, err := s.V1Alpha1ValidatorServer.ProposeBeaconBlock(ctx, blk)
+	_, err := s.ProposerServer.ProposeBeaconBlock(ctx, blk)
 	if err != nil {
 		httputil.HandleError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1445,7 +1445,7 @@ func (s *Server) broadcastSeenBlockSidecars(
 	b interfaces.SignedBeaconBlock,
 	blobs [][]byte,
 	kzgProofs [][]byte) error {
-	scs, err := validator.BuildBlobSidecars(b, blobs, kzgProofs)
+	scs, err := proposer.BuildBlobSidecars(b, blobs, kzgProofs)
 	if err != nil {
 		return err
 	}

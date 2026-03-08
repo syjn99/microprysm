@@ -16,9 +16,9 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/rewards"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/validator"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/lookup"
+	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/proposer"
 	beaconprysm "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/beacon"
 	nodeprysm "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/node"
-	validatorv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/validator"
 	validatorprysm "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/validator"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/state/stategen"
 	"github.com/OffchainLabs/prysm/v7/config/features"
@@ -83,7 +83,7 @@ func (s *Service) endpoints(
 	blocker lookup.Blocker,
 	stater lookup.Stater,
 	rewardFetcher rewards.BlockRewardsFetcher,
-	validatorServer *validatorv1alpha1.Server,
+	validatorServer *proposer.Server,
 	coreService *core.Service,
 	ch *stategen.CanonicalHistory,
 ) []endpoint {
@@ -194,7 +194,7 @@ func (s *Service) blobEndpoints(blocker lookup.Blocker) []endpoint {
 }
 
 func (s *Service) validatorEndpoints(
-	validatorServer *validatorv1alpha1.Server,
+	validatorServer *proposer.Server,
 	stater lookup.Stater,
 	coreService *core.Service,
 	rewardFetcher rewards.BlockRewardsFetcher,
@@ -208,7 +208,7 @@ func (s *Service) validatorEndpoints(
 		AttestationsPool:       s.cfg.AttestationsPool,
 		PeerManager:            s.cfg.PeerManager,
 		Broadcaster:            s.cfg.Broadcaster,
-		V1Alpha1Server:         validatorServer,
+		ProposerServer:         validatorServer,
 		Stater:                 stater,
 		SyncCommitteePool:      s.cfg.SyncCommitteeObjectPool,
 		ChainInfoFetcher:       s.cfg.ChainInfoFetcher,
@@ -507,7 +507,7 @@ func (s *Service) beaconEndpoints(
 	ch *stategen.CanonicalHistory,
 	stater lookup.Stater,
 	blocker lookup.Blocker,
-	validatorServer *validatorv1alpha1.Server,
+	validatorServer *proposer.Server,
 	coreService *core.Service,
 ) []endpoint {
 	server := &beacon.Server{
@@ -529,7 +529,7 @@ func (s *Service) beaconEndpoints(
 		HeadFetcher:             s.cfg.HeadFetcher,
 		TimeFetcher:             s.cfg.GenesisTimeFetcher,
 		VoluntaryExitsPool:      s.cfg.ExitPool,
-		V1Alpha1ValidatorServer: validatorServer,
+		ProposerServer:          validatorServer,
 		SyncChecker:             s.cfg.SyncService,
 		ExecutionReconstructor:  s.cfg.ExecutionReconstructor,
 		BLSChangesPool:          s.cfg.BLSChangesPool,

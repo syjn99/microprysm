@@ -906,7 +906,7 @@
 
 - name: compute_new_state_root#phase0
   sources:
-    - file: beacon-chain/rpc/prysm/v1alpha1/validator/proposer.go
+    - file: beacon-chain/rpc/proposer/proposer.go
       search: func (vs *Server) computeStateRoot(
   spec: |
     <spec fn="compute_new_state_root" fork="phase0" hash="ad3c03b7">
@@ -919,7 +919,7 @@
 
 - name: compute_on_chain_aggregate#electra
   sources:
-    - file: beacon-chain/rpc/prysm/v1alpha1/validator/proposer_attestations_electra.go
+    - file: beacon-chain/rpc/proposer/proposer_attestations_electra.go
       search: func computeOnChainAggregate(
   spec: |
     <spec fn="compute_on_chain_aggregate" fork="electra" hash="f020af4c">
@@ -2264,7 +2264,7 @@
 
 - name: get_blob_sidecars#deneb
   sources:
-    - file: beacon-chain/rpc/prysm/v1alpha1/validator/proposer_deneb.go
+    - file: beacon-chain/rpc/proposer/proposer_deneb.go
       search: func BuildBlobSidecars(
   spec: |
     <spec fn="get_blob_sidecars" fork="deneb" hash="0206e9a5">
@@ -2857,7 +2857,7 @@
 
 - name: get_eth1_pending_deposit_count#electra
   sources:
-    - file: beacon-chain/rpc/prysm/v1alpha1/validator/proposer_deposits.go
+    - file: beacon-chain/rpc/proposer/proposer_deposits.go
       search: func (vs *Server) deposits(
   spec: |
     <spec fn="get_eth1_pending_deposit_count" fork="electra" hash="5dc54930">
@@ -4306,7 +4306,7 @@
 
 - name: get_terminal_pow_block#bellatrix
   sources:
-    - file: beacon-chain/rpc/prysm/v1alpha1/validator/proposer_execution_payload.go
+    - file: beacon-chain/rpc/proposer/proposer_execution_payload.go
       search: func (vs *Server) getTerminalBlockHashIfExists(
   spec: |
     <spec fn="get_terminal_pow_block" fork="bellatrix" hash="90e145ca">

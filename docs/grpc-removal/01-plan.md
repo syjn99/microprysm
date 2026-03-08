@@ -115,10 +115,12 @@
 - Keep the HTTP REST server running (already separate)
 - **Risk:** High — major architectural change. Must verify no internal code calls gRPC services directly.
 
-### PR 4.2: Delete v1alpha1 gRPC validator service implementation
-**Scope:** `beacon-chain/rpc/prysm/v1alpha1/validator/` (entire directory, ~14 files)
-- The REST endpoints in `beacon-chain/rpc/eth/validator/` already cover all duties
-- Both REST and gRPC handlers delegate to the same `core/` logic
+### PR 4.2: Delete v1alpha1 gRPC validator service implementation ✅
+**Scope:** `beacon-chain/rpc/prysm/v1alpha1/validator/` (entire directory, ~60 files)
+- Extracted proposer logic into new `beacon-chain/rpc/proposer/` package
+- Updated call sites: `eth/validator/`, `eth/beacon/`, `endpoints.go`, `service.go`
+- Removed `RegisterBeaconNodeValidatorServer` gRPC registration
+- Deleted entire `v1alpha1/validator/` directory
 - **Risk:** Medium — verify REST endpoints cover all functionality
 
 ### ~~PR 4.3: Delete v1alpha1 gRPC beacon service implementation~~ ✅
