@@ -17,8 +17,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -95,18 +93,18 @@ func (vs *Server) GetExecutionPayloadEnvelope(
 	defer span.End()
 
 	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+		return nil, errors.New("request cannot be nil")
 	}
 	span.SetAttributes(trace.Int64Attribute("slot", int64(req.Slot)))
 
 	if slots.ToEpoch(req.Slot) < params.BeaconConfig().GloasForkEpoch {
-		return nil, status.Errorf(codes.InvalidArgument,
+		return nil, fmt.Errorf(
 			"execution payload envelopes are not supported before Gloas fork (slot %d)", req.Slot)
 	}
 
 	envelope, found := vs.getExecutionPayloadEnvelope(req.Slot)
 	if !found {
-		return nil, status.Errorf(codes.NotFound,
+		return nil, fmt.Errorf(
 			"execution payload envelope not found for slot %d", req.Slot)
 	}
 
@@ -114,11 +112,11 @@ func (vs *Server) GetExecutionPayloadEnvelope(
 		// Lazily set the state root in the envelope by applying the payload evelope on the post block state
 		roEnvelope, err := consensusblocks.WrappedROExecutionPayloadEnvelope(envelope)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "could not wrap envelope: %v", err)
+			return nil, fmt.Errorf("could not wrap envelope: %v", err)
 		}
 		stateRoot, err := vs.computePostPayloadStateRoot(ctx, roEnvelope)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "could not compute post-payload state root: %v", err)
+			return nil, fmt.Errorf("could not compute post-payload state root: %v", err)
 		}
 		vs.executionPayloadEnvelopeMu.Lock()
 		envelope.StateRoot = stateRoot
@@ -164,11 +162,11 @@ func (vs *Server) PublishExecutionPayloadEnvelope(
 	defer span.End()
 
 	if req == nil || req.Message == nil {
-		return nil, status.Error(codes.InvalidArgument, "signed envelope cannot be nil")
+		return nil, errors.New("signed envelope cannot be nil")
 	}
 
 	if slots.ToEpoch(req.Message.Slot) < params.BeaconConfig().GloasForkEpoch {
-		return nil, status.Errorf(codes.InvalidArgument,
+		return nil, fmt.Errorf(
 			"execution payload envelopes are not supported before Gloas fork (slot %d)", req.Message.Slot)
 	}
 
@@ -187,15 +185,15 @@ func (vs *Server) PublishExecutionPayloadEnvelope(
 	log.Info("Publishing signed execution payload envelope")
 
 	if err := vs.P2P.Broadcast(ctx, req); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to broadcast execution payload envelope: %v", err)
+		return nil, fmt.Errorf("failed to broadcast execution payload envelope: %v", err)
 	}
 
 	roSigned, err := consensusblocks.WrappedROSignedExecutionPayloadEnvelope(req)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "could not wrap signed envelope: %v", err)
+		return nil, fmt.Errorf("could not wrap signed envelope: %v", err)
 	}
 	if err := vs.ExecutionPayloadEnvelopeReceiver.ReceiveExecutionPayloadEnvelope(ctx, roSigned); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to receive execution payload envelope: %v", err)
+		return nil, fmt.Errorf("failed to receive execution payload envelope: %v", err)
 	}
 
 	// TODO: Build and broadcast data column sidecars from the cached blobs bundle.

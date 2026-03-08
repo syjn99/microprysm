@@ -35,8 +35,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // eth1DataNotification is a latch to stop flooding logs with the same warning.
@@ -67,13 +65,13 @@ func (vs *Server) GetBeaconBlock(ctx context.Context, req *ethpb.BlockRequest) (
 	// A syncing validator should not produce a block.
 	if vs.SyncChecker.Syncing() {
 		log.Error("Fail to build block: node is syncing")
-		return nil, status.Error(codes.Unavailable, "Syncing to latest head, not ready to respond")
+		return nil, errors.New("Syncing to latest head, not ready to respond")
 	}
 	// An optimistic validator MUST NOT produce a block (i.e., sign across the DOMAIN_BEACON_PROPOSER domain).
 	if slots.ToEpoch(req.Slot) >= params.BeaconConfig().BellatrixForkEpoch {
 		if err := vs.optimisticStatus(ctx); err != nil {
 			log.WithError(err).Error("Fail to build block: node is optimistic")
-			return nil, status.Errorf(codes.Unavailable, "Validator is not ready to propose: %v", err)
+			return nil, fmt.Errorf("Validator is not ready to propose: %v", err)
 		}
 	}
 
@@ -85,7 +83,7 @@ func (vs *Server) GetBeaconBlock(ctx context.Context, req *ethpb.BlockRequest) (
 	sBlk, err := getEmptyBlock(req.Slot)
 	if err != nil {
 		log.WithError(err).Error("Fail to build block: could not get empty block")
-		return nil, status.Errorf(codes.Internal, "Could not prepare block: %v", err)
+		return nil, fmt.Errorf("Could not prepare block: %v", err)
 	}
 	// Set slot, graffiti, randao reveal, and parent root.
 	sBlk.SetSlot(req.Slot)
@@ -135,7 +133,7 @@ func (vs *Server) handleSuccesfulReorgAttempt(ctx context.Context, slot primitiv
 	// cache miss
 	head, err := vs.StateGen.StateByRoot(ctx, parentRoot)
 	if err != nil {
-		return nil, status.Error(codes.Unavailable, "could not obtain head state")
+		return nil, errors.New("could not obtain head state")
 	}
 	return head, nil
 }
@@ -157,7 +155,7 @@ func (vs *Server) getHeadNoReorg(ctx context.Context, slot primitives.Slot, pare
 	}
 	head, err := vs.HeadFetcher.HeadState(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not get head state: %v", err)
+		return nil, fmt.Errorf("Could not get head state: %v", err)
 	}
 	return head, nil
 }
@@ -179,7 +177,7 @@ func (vs *Server) getParentStateFromReorgData(ctx context.Context, slot primitiv
 	}
 	head, err = transition.ProcessSlotsUsingNextSlotCache(ctx, head, parentRoot[:], slot)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not process slots up to %d: %v", slot, err)
+		return nil, fmt.Errorf("Could not process slots up to %d: %v", slot, err)
 	}
 	return head, nil
 }
@@ -253,7 +251,7 @@ func (vs *Server) BuildBlockParallel(ctx context.Context, sBlk interfaces.Signed
 		var err error
 		local, err = vs.getLocalPayload(ctx, sBlk.Block(), head)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not get local payload: %v", err)
+			return nil, fmt.Errorf("Could not get local payload: %v", err)
 		}
 
 		if sBlk.Version() < version.Gloas {
@@ -262,7 +260,7 @@ func (vs *Server) BuildBlockParallel(ctx context.Context, sBlk interfaces.Signed
 			if !(local.OverrideBuilder || skipMevBoost) {
 				latestHeader, err := head.LatestExecutionPayloadHeader()
 				if err != nil {
-					return nil, status.Errorf(codes.Internal, "Could not get latest execution payload header: %v", err)
+					return nil, fmt.Errorf("Could not get latest execution payload header: %v", err)
 				}
 				parentGasLimit := latestHeader.GasLimit()
 				builderBid, err = vs.getBuilderPayloadAndBlobs(ctx, sBlk.Block().Slot(), sBlk.Block().ProposerIndex(), parentGasLimit)
@@ -274,11 +272,11 @@ func (vs *Server) BuildBlockParallel(ctx context.Context, sBlk interfaces.Signed
 
 			winningBid, bundle, err = setExecutionData(ctx, sBlk, local, builderBid, builderBoostFactor)
 			if err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not set execution data: %v", err)
+				return nil, fmt.Errorf("Could not set execution data: %v", err)
 			}
 		} else {
 			if err := vs.setSelfBuildExecutionPayloadBid(ctx, sBlk, local); err != nil {
-				return nil, status.Errorf(codes.Internal, "Could not set execution data for Gloas: %v", err)
+				return nil, fmt.Errorf("Could not set execution data for Gloas: %v", err)
 			}
 		}
 	}
@@ -287,7 +285,7 @@ func (vs *Server) BuildBlockParallel(ctx context.Context, sBlk interfaces.Signed
 
 	sr, err := vs.computeStateRoot(ctx, sBlk)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not compute state root: %v", err)
+		return nil, fmt.Errorf("Could not compute state root: %v", err)
 	}
 	sBlk.SetStateRoot(sr)
 
@@ -296,7 +294,7 @@ func (vs *Server) BuildBlockParallel(ctx context.Context, sBlk interfaces.Signed
 	// BeaconBlockRoot and the post-payload state root as StateRoot.
 	if sBlk.Version() >= version.Gloas {
 		if err := vs.storeExecutionPayloadEnvelope(sBlk, local); err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not build execution payload envelope: %v", err)
+			return nil, fmt.Errorf("Could not build execution payload envelope: %v", err)
 		}
 	}
 
@@ -316,23 +314,23 @@ func (vs *Server) ProposeBeaconBlock(ctx context.Context, req *ethpb.GenericSign
 	defer span.End()
 
 	if req == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "empty request")
+		return nil, errors.New("empty request")
 	}
 
 	block, err := blocks.NewSignedBeaconBlock(req.Block)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "%s: %v", "decode block failed", err)
+		return nil, fmt.Errorf("%s: %v", "decode block failed", err)
 	}
 	root, err := block.Block().HashTreeRoot()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not hash tree root: %v", err)
+		return nil, fmt.Errorf("Could not hash tree root: %v", err)
 	}
 
 	// For post-Fulu blinded blocks, submit to relay and return early
 	if block.IsBlinded() && slots.ToEpoch(block.Block().Slot()) >= params.BeaconConfig().FuluForkEpoch {
 		err := vs.BlockBuilder.SubmitBlindedBlockPostFulu(ctx, block)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not submit blinded block post-Fulu: %v", err)
+			return nil, fmt.Errorf("Could not submit blinded block post-Fulu: %v", err)
 		}
 		return &ethpb.ProposeResponse{BlockRoot: root[:]}, nil
 	}
@@ -348,7 +346,7 @@ func (vs *Server) ProposeBeaconBlock(ctx context.Context, req *ethpb.GenericSign
 		blobSidecars, dataColumnSidecars, err = vs.handleUnblindedBlock(rob, req)
 	}
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "%s: %v", "handle block failed", err)
+		return nil, fmt.Errorf("%s: %v", "handle block failed", err)
 	}
 
 	var wg sync.WaitGroup
@@ -367,11 +365,11 @@ func (vs *Server) ProposeBeaconBlock(ctx context.Context, req *ethpb.GenericSign
 
 	if block.Version() < version.Gloas {
 		if err := vs.broadcastAndReceiveSidecars(ctx, block, root, blobSidecars, dataColumnSidecars); err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not broadcast/receive sidecars: %v", err)
+			return nil, fmt.Errorf("Could not broadcast/receive sidecars: %v", err)
 		}
 	}
 	if err := <-errChan; err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not broadcast/receive block: %v", err)
+		return nil, fmt.Errorf("Could not broadcast/receive block: %v", err)
 	}
 
 	return &ethpb.ProposeResponse{BlockRoot: root[:]}, nil
@@ -561,7 +559,7 @@ func (vs *Server) PrepareBeaconProposer(
 	for _, r := range request.Recipients {
 		recipient := hexutil.Encode(r.FeeRecipient)
 		if !common.IsHexAddress(recipient) {
-			return nil, status.Errorf(codes.InvalidArgument, "Invalid fee recipient address: %v", recipient)
+			return nil, fmt.Errorf("Invalid fee recipient address: %v", recipient)
 		}
 		// Use default address if the burn address is return
 		feeRecipient := primitives.ExecutionAddress(r.FeeRecipient)
@@ -602,7 +600,7 @@ func (vs *Server) GetFeeRecipientByPubKey(ctx context.Context, request *ethpb.Fe
 	ctx, span := trace.StartSpan(ctx, "validator.GetFeeRecipientByPublicKey")
 	defer span.End()
 	if request == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "request was empty")
+		return nil, errors.New("request was empty")
 	}
 
 	resp, err := vs.ValidatorIndex(ctx, &ethpb.ValidatorIndexRequest{PublicKey: request.PublicKey})
@@ -624,7 +622,7 @@ func (vs *Server) GetFeeRecipientByPubKey(ctx context.Context, request *ethpb.Fe
 			}, nil
 		} else {
 			log.WithError(err).Error("An error occurred while retrieving fee recipient from db")
-			return nil, status.Errorf(codes.Internal, "error=%s", err)
+			return nil, fmt.Errorf("error=%s", err)
 		}
 	}
 	return &ethpb.FeeRecipientByPubKeyResponse{
@@ -664,7 +662,7 @@ const maxComputeStateRootAttempts = 3
 // handleStateRootError retries block construction in some error cases.
 func (vs *Server) handleStateRootError(ctx context.Context, block interfaces.SignedBeaconBlock, err error) ([]byte, error) {
 	if ctx.Err() != nil {
-		return nil, status.Errorf(codes.Canceled, "context error: %v", ctx.Err())
+		return nil, fmt.Errorf("context error: %v", ctx.Err())
 	}
 	switch {
 	case errors.Is(err, transition.ErrAttestationsSignatureInvalid),
@@ -720,11 +718,11 @@ func (vs *Server) handleStateRootError(ctx context.Context, block interfaces.Sig
 // SubmitValidatorRegistrations submits validator registrations.
 func (vs *Server) SubmitValidatorRegistrations(ctx context.Context, reg *ethpb.SignedValidatorRegistrationsV1) (*emptypb.Empty, error) {
 	if vs.BlockBuilder == nil || !vs.BlockBuilder.Configured() {
-		return &emptypb.Empty{}, status.Errorf(codes.InvalidArgument, "Could not register block builder: %v", builder.ErrNoBuilder)
+		return &emptypb.Empty{}, fmt.Errorf("Could not register block builder: %v", builder.ErrNoBuilder)
 	}
 
 	if err := vs.BlockBuilder.RegisterValidator(ctx, reg.Messages); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "Could not register block builder: %v", err)
+		return nil, fmt.Errorf("Could not register block builder: %v", err)
 	}
 
 	return &emptypb.Empty{}, nil

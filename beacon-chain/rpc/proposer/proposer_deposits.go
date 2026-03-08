@@ -3,6 +3,7 @@ package proposer
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/cache"
@@ -17,8 +18,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (vs *Server) packDepositsAndAttestations(
@@ -35,7 +34,7 @@ func (vs *Server) packDepositsAndAttestations(
 		// Pack ETH1 deposits which have not been included in the beacon chain.
 		localDeposits, err := vs.deposits(egctx, head, eth1Data)
 		if err != nil {
-			return status.Errorf(codes.Internal, "Could not get ETH1 deposits: %v", err)
+			return fmt.Errorf("Could not get ETH1 deposits: %v", err)
 		}
 		// if the original context is cancelled, then cancel this routine too
 		select {
@@ -51,7 +50,7 @@ func (vs *Server) packDepositsAndAttestations(
 		// Pack aggregated attestations which have not been included in the beacon chain.
 		localAtts, err := vs.packAttestations(egctx, head, blkSlot)
 		if err != nil {
-			return status.Errorf(codes.Internal, "Could not get attestations to pack into block: %v", err)
+			return fmt.Errorf("Could not get attestations to pack into block: %v", err)
 		}
 		// if the original context is cancelled, then cancel this routine too
 		select {

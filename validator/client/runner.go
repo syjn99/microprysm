@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,8 +17,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/validator/client/iface"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // Time to wait before trying to reconnect with beacon node.
@@ -288,7 +287,7 @@ func isConnectionError(err error) bool {
 func handleAssignmentError(err error, slot primitives.Slot) {
 	if errors.Is(err, ErrValidatorsAllExited) {
 		log.Warn(ErrValidatorsAllExited)
-	} else if errCode, ok := status.FromError(err); ok && errCode.Code() == codes.NotFound {
+	} else if strings.Contains(err.Error(), "NotFound") || strings.Contains(err.Error(), "not found") {
 		log.WithField(
 			"epoch", slot/params.BeaconConfig().SlotsPerEpoch,
 		).Warn("Validator not yet assigned to epoch")
