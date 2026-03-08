@@ -61,7 +61,6 @@ common_deps = [
     "//encoding/bytesutil:go_default_library",
     "//genesis:go_default_library",
     "//io/file:go_default_library",
-    "//proto/eth/v1:go_default_library",
     "//math:go_default_library",
     "//proto/engine/v1:go_default_library",
     "//proto/prysm/v1alpha1:go_default_library",

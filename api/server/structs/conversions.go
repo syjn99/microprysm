@@ -1562,7 +1562,6 @@ func ChainReorgEventFromData(event *statefeed.ChainReorgData) *ChainReorgEvent {
 		ExecutionOptimistic: event.ExecutionOptimistic,
 	}
 }
-
 func SyncAggregateFromConsensus(sa *eth.SyncAggregate) *SyncAggregate {
 	return &SyncAggregate{
 		SyncCommitteeBits:      hexutil.Encode(sa.SyncCommitteeBits),
