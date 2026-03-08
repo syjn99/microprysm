@@ -29,7 +29,7 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/core"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/eth/rewards"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/lookup"
-	validatorv1alpha1 "github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/prysm/v1alpha1/validator"
+	"github.com/OffchainLabs/prysm/v7/beacon-chain/rpc/proposer"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/startup"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/state/stategen"
 	chainSync "github.com/OffchainLabs/prysm/v7/beacon-chain/sync"
@@ -61,7 +61,7 @@ type Service struct {
 	credentialError      error
 	connectedRPCClients  map[net.Addr]bool
 	clientConnectionLock sync.Mutex
-	validatorServer      *validatorv1alpha1.Server
+	proposerServer       *proposer.Server
 }
 
 // Config options for the beacon node RPC server.
@@ -212,7 +212,7 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		ReplayerBuilder:       ch,
 		OptimisticModeFetcher: s.cfg.OptimisticModeFetcher,
 	}
-	validatorServer := &validatorv1alpha1.Server{
+	proposerServer := &proposer.Server{
 		Ctx:                              s.ctx,
 		AttestationCache:                 s.cfg.AttestationCache,
 		AttPool:                          s.cfg.AttestationsPool,
@@ -255,8 +255,8 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		AttestationStateFetcher:          s.cfg.AttestationReceiver,
 		GraffitiInfo:                     s.cfg.GraffitiInfo,
 	}
-	s.validatorServer = validatorServer
-	endpoints := s.endpoints(s.cfg.EnableDebugRPCEndpoints, blocker, stater, rewardFetcher, validatorServer, coreService, ch)
+	s.proposerServer = proposerServer
+	endpoints := s.endpoints(s.cfg.EnableDebugRPCEndpoints, blocker, stater, rewardFetcher, proposerServer, coreService, ch)
 	for _, e := range endpoints {
 		for i := range e.methods {
 			s.cfg.Router.HandleFunc(
@@ -266,7 +266,6 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		}
 	}
 
-	ethpbv1alpha1.RegisterBeaconNodeValidatorServer(s.grpcServer, validatorServer)
 	// Register reflection service on gRPC server.
 	reflection.Register(s.grpcServer)
 

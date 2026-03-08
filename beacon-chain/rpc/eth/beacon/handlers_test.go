@@ -1542,8 +1542,8 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.Phase0Block)))
@@ -1564,8 +1564,8 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.AltairBlock)))
@@ -1588,8 +1588,8 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BellatrixBlock)))
@@ -1612,8 +1612,8 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.CapellaBlock)))
@@ -1636,8 +1636,8 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.DenebBlockContents)))
@@ -1660,8 +1660,8 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.ElectraBlockContents)))
@@ -1684,8 +1684,8 @@ func TestPublishBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.FuluBlockContents)))
@@ -1765,8 +1765,8 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlock
@@ -1795,8 +1795,8 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockAltair
@@ -1821,8 +1821,8 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 		var blk structs.SignedBeaconBlockBellatrix
 		err := json.Unmarshal([]byte(rpctesting.BellatrixBlock), &blk)
@@ -1846,8 +1846,8 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockCapella
@@ -1872,8 +1872,8 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockContentsDeneb
@@ -1898,8 +1898,8 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockContentsElectra
@@ -1924,8 +1924,8 @@ func TestPublishBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockContentsFulu
@@ -2030,8 +2030,8 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.Phase0Block)))
@@ -2052,8 +2052,8 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.AltairBlock)))
@@ -2076,8 +2076,8 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedBellatrixBlock)))
@@ -2100,8 +2100,8 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedCapellaBlock)))
@@ -2124,8 +2124,8 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedDenebBlock)))
@@ -2148,8 +2148,8 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedElectraBlock)))
@@ -2172,8 +2172,8 @@ func TestPublishBlindedBlockV2(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		request := httptest.NewRequest(http.MethodPost, "http://foo.example", bytes.NewReader([]byte(rpctesting.BlindedFuluBlock)))
@@ -2252,8 +2252,8 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlock
@@ -2282,8 +2282,8 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBeaconBlockAltair
@@ -2308,8 +2308,8 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockBellatrix
@@ -2334,8 +2334,8 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockCapella
@@ -2360,8 +2360,8 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockDeneb
@@ -2386,8 +2386,8 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockElectra
@@ -2412,8 +2412,8 @@ func TestPublishBlindedBlockV2SSZ(t *testing.T) {
 			return ok
 		}))
 		server := &Server{
-			V1Alpha1ValidatorServer: v1alpha1Server,
-			SyncChecker:             &mockSync.Sync{IsSyncing: false},
+			ProposerServer: v1alpha1Server,
+			SyncChecker:    &mockSync.Sync{IsSyncing: false},
 		}
 
 		var blk structs.SignedBlindedBeaconBlockFulu
