@@ -230,17 +230,14 @@ func (v *ValidatorNode) Start(ctx context.Context) error {
 		"--" + cmdshared.AcceptTosFlag.Name,
 	}
 
-	if v.config.UseBeaconRestApi {
-		beaconRestApiPort := e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort + index
-		if beaconRestApiPort >= e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort+e2e.TestParams.BeaconNodeCount {
-			// Point any extra validator clients to a node we know is running.
-			beaconRestApiPort = e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort
-		}
-
-		args = append(args,
-			fmt.Sprintf("--%s=http://localhost:%d", flags.BeaconRESTApiProviderFlag.Name, beaconRestApiPort),
-			fmt.Sprintf("--%s", features.EnableBeaconRESTApi.Name))
+	beaconRestApiPort := e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort + index
+	if beaconRestApiPort >= e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort+e2e.TestParams.BeaconNodeCount {
+		// Point any extra validator clients to a node we know is running.
+		beaconRestApiPort = e2e.TestParams.Ports.PrysmBeaconNodeHTTPPort
 	}
+
+	args = append(args,
+		fmt.Sprintf("--%s=http://localhost:%d", flags.BeaconRESTApiProviderFlag.Name, beaconRestApiPort))
 
 	// Only apply e2e flags to the current branch. New flags may not exist in previous release.
 	if !v.config.UsePrysmShValidator {
