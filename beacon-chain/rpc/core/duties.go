@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/core/helpers"
@@ -16,8 +17,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // AttesterDutyResult is a transport-agnostic representation of attester duty.
@@ -225,7 +224,7 @@ func AttestationDependentRoot(s state.BeaconState, epoch primitives.Epoch) ([]by
 	}
 	prevEpochStartSlot, err := slots.EpochStart(epoch.Sub(1))
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not obtain epoch's start slot: %v", err)
+		return nil, fmt.Errorf("could not obtain epoch's start slot: %w", err)
 	}
 	root, err := helpers.BlockRootAtSlot(s, prevEpochStartSlot.Sub(1))
 	if err != nil {
@@ -244,7 +243,7 @@ func ProposalDependentRoot(s state.BeaconState, epoch primitives.Epoch) ([]byte,
 	}
 	epochStartSlot, err := slots.EpochStart(epoch)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not obtain epoch's start slot: %v", err)
+		return nil, fmt.Errorf("could not obtain epoch's start slot: %w", err)
 	}
 	root, err := helpers.BlockRootAtSlot(s, epochStartSlot.Sub(1))
 	if err != nil {
