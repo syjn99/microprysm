@@ -148,36 +148,36 @@
 
 ## Phase 5: Remove gRPC Infrastructure (Low Risk after Phase 4)
 
-### PR 5.1: Delete api/grpc/ package
+### PR 5.1: Delete api/grpc/ package ✅ — [PR #24](https://github.com/syjn99/microprysm/pull/24)
 **Scope:** `api/grpc/` (5 files)
 - GrpcConnectionProvider, grpcutils, mock
 - No remaining callers after Phase 3+4
 - **Risk:** None
 
-### PR 5.2: Delete testing/mock/ gRPC mocks
+### PR 5.2: Delete testing/mock/ gRPC mocks ✅ — [PR #25](https://github.com/syjn99/microprysm/pull/25)
 **Scope:** `testing/mock/` (6 files)
 - beacon_service_mock.go, beacon_validator_client_mock.go, etc.
 - Verify no tests reference these mocks
 - **Risk:** Low
 
-### PR 5.3: Remove gRPC service definitions from proto files
+### PR 5.3: Remove gRPC service definitions from proto files ✅ — [PR #28](https://github.com/syjn99/microprysm/pull/28)
 **Scope:** `proto/prysm/v1alpha1/*.proto`
 - Remove `service` blocks from validator.proto, beacon_chain.proto, node.proto, health.proto, debug.proto
 - Keep `message` definitions (still used everywhere)
 - Regenerate .pb.go files (will remove _grpc.pb.go stubs)
 - **Risk:** Low — message types preserved
 
-### PR 5.4: Remove gRPC from beacon-chain/rpc/core/
+### PR 5.4: Remove gRPC from beacon-chain/rpc/core/ ✅ — [PR #26](https://github.com/syjn99/microprysm/pull/26)
 **Scope:** `beacon-chain/rpc/core/errors.go`, `beacon-chain/rpc/core/duties.go`
 - Replace gRPC status codes with standard errors or HTTP-compatible error types
 - **Risk:** Low
 
-### PR 5.5: Remove gRPC from beacon-chain/rpc/eth/helpers/
+### PR 5.5: Remove gRPC from beacon-chain/rpc/eth/helpers/ ✅ — merged with PR #26
 **Scope:** `beacon-chain/rpc/eth/helpers/error_handling.go`
 - Replace any gRPC status code conversion with HTTP status helpers
 - **Risk:** Low
 
-### PR 5.6: Remove EnableBeaconRESTApi feature flag
+### PR 5.6: Remove EnableBeaconRESTApi feature flag ✅ — [PR #29](https://github.com/syjn99/microprysm/pull/29)
 **Scope:** `config/features/`, `testing/endtoend/types/`, `testing/endtoend/`
 - Flag no longer meaningful — REST is the only option
 - Clean up flag definition and config field
@@ -259,3 +259,10 @@ Phase 1 (dead code) → Phase 2 (CLI tools) → Phase 3 (validator REST-only)
 Phases 1 and 2 can proceed in parallel.
 Phase 3 must complete before Phase 4.
 Phases 5 and 6 can partially overlap after Phase 4.
+
+### PR 5.7: Remove gRPC status codes from proposer and validator/client ✅ — [PR #31](https://github.com/syjn99/microprysm/pull/31)
+**Scope:** Final gRPC cleanup in non-proto Go files
+- beacon-chain/rpc/proposer/ (5 files) — `grpc/codes`, `grpc/status` → `fmt.Errorf`/`errors.New`
+- validator/client/ (3 files) — `grpc/codes`, `grpc/status`, `grpc/metadata` → standard errors
+- **Risk:** Low — error type changes only, no behavioral changes
+- **Note:** Also closes PR #27 (Phase 5.5 original attempt was wrong approach)

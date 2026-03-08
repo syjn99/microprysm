@@ -5,6 +5,7 @@ package proposer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/blockchain"
@@ -30,8 +31,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
 	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var errOptimisticMode = errors.New("the node is currently optimistic and cannot serve validators")
@@ -87,14 +86,14 @@ type Server struct {
 func (vs *Server) ValidatorIndex(ctx context.Context, req *ethpb.ValidatorIndexRequest) (*ethpb.ValidatorIndexResponse, error) {
 	st, err := vs.HeadFetcher.HeadStateReadOnly(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Could not determine head state: %v", err)
+		return nil, fmt.Errorf("Could not determine head state: %v", err)
 	}
 	if st == nil || st.IsNil() {
-		return nil, status.Errorf(codes.Internal, "head state is empty")
+		return nil, errors.New("head state is empty")
 	}
 	index, ok := st.ValidatorIndexByPubkey(bytesutil.ToBytes48(req.PublicKey))
 	if !ok {
-		return nil, status.Errorf(codes.NotFound, "Could not find validator index for public key %#x", req.PublicKey)
+		return nil, fmt.Errorf("Could not find validator index for public key %#x", req.PublicKey)
 	}
 
 	return &ethpb.ValidatorIndexResponse{Index: index}, nil
@@ -107,11 +106,11 @@ func (vs *Server) optimisticStatus(ctx context.Context) error {
 	}
 	optimistic, err := vs.OptimisticModeFetcher.IsOptimistic(ctx)
 	if err != nil {
-		return status.Errorf(codes.Internal, "Could not determine if the node is a optimistic node: %v", err)
+		return fmt.Errorf("Could not determine if the node is a optimistic node: %v", err)
 	}
 	if !optimistic {
 		return nil
 	}
 
-	return status.Errorf(codes.Unavailable, "error=%v", errOptimisticMode)
+	return fmt.Errorf("error=%v", errOptimisticMode)
 }

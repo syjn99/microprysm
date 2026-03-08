@@ -16,7 +16,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc/metadata"
 )
 
 // filterBlacklistedKeys returns validating keys with slashable keys removed.
@@ -88,11 +87,7 @@ func (v *validator) UpdateDuties(ctx context.Context) error {
 	}
 
 	// Non-blocking call for beacon node to start subscriptions for aggregators.
-	md, exists := metadata.FromOutgoingContext(ctx)
 	ctx = context.Background()
-	if exists {
-		ctx = metadata.NewOutgoingContext(ctx, md)
-	}
 	go func() {
 		if err := v.subscribeToSubnets(ctx, resp); err != nil {
 			log.WithError(err).Error("Failed to subscribe to subnets")

@@ -55,8 +55,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	logTest "github.com/sirupsen/logrus/hooks/test"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -877,9 +875,6 @@ func TestServer_GetBeaconBlock_Optimistic(t *testing.T) {
 		Slot: bellatrixSlot + 1,
 	}
 	_, err = proposerServer.GetBeaconBlock(t.Context(), req)
-	s, ok := status.FromError(err)
-	require.Equal(t, true, ok)
-	require.DeepEqual(t, codes.Unavailable, s.Code())
 	require.ErrorContains(t, errOptimisticMode.Error(), err)
 }
 
