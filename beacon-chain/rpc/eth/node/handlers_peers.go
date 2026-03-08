@@ -11,7 +11,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/p2p/peers/peerdata"
 	"github.com/OffchainLabs/prysm/v7/monitoring/tracing/trace"
 	"github.com/OffchainLabs/prysm/v7/network/httputil"
-	"github.com/OffchainLabs/prysm/v7/proto/migration"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
@@ -68,20 +67,13 @@ func (s *Server) GetPeer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	v1ConnState := migration.V1Alpha1ConnectionStateToV1(eth.ConnectionState(state))
-	v1PeerDirection, err := migration.V1Alpha1PeerDirectionToV1(eth.PeerDirection(direction))
-	if err != nil {
-		httputil.HandleError(w, "Could not handle peer direction: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	resp := &structs.GetPeerResponse{
 		Data: &structs.Peer{
 			PeerId:             rawId,
 			Enr:                "enr:" + serializedEnr,
 			LastSeenP2PAddress: p2pAddress.String(),
-			State:              strings.ToLower(v1ConnState.String()),
-			Direction:          strings.ToLower(v1PeerDirection.String()),
+			State:              strings.ToLower(eth.ConnectionState(state).String()),
+			Direction:          strings.ToLower(eth.PeerDirection(direction).String()),
 		},
 	}
 	httputil.WriteJson(w, resp)
