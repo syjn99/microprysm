@@ -3,7 +3,7 @@ name: Bazel E2E Tests
 on:
   push:
     branches: [develop]
-  merge_group:
+  pull_request:
 
 jobs:
   e2e:
