@@ -1,16 +1,13 @@
 package helpers
 
 import (
-	"strconv"
 	"testing"
 
 	state_native "github.com/OffchainLabs/prysm/v7/beacon-chain/state/state-native"
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/validator"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
-	"github.com/OffchainLabs/prysm/v7/proto/migration"
-	"github.com/OffchainLabs/prysm/v7/testing/assert"
+	ethpbalpha "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
 )
 
@@ -18,7 +15,7 @@ func Test_ValidatorStatus(t *testing.T) {
 	farFutureEpoch := params.BeaconConfig().FarFutureEpoch
 
 	type args struct {
-		validator *ethpb.Validator
+		validator *ethpbalpha.Validator
 		epoch     primitives.Epoch
 	}
 	tests := []struct {
@@ -30,7 +27,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "pending initialized",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:            farFutureEpoch,
 					ActivationEligibilityEpoch: farFutureEpoch,
 				},
@@ -41,7 +38,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "pending queued",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:            10,
 					ActivationEligibilityEpoch: 2,
 				},
@@ -52,7 +49,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "active ongoing",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch: 3,
 					ExitEpoch:       farFutureEpoch,
 				},
@@ -63,7 +60,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "active slashed",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch: 3,
 					ExitEpoch:       30,
 					Slashed:         true,
@@ -75,7 +72,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "active exiting",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch: 3,
 					ExitEpoch:       30,
 					Slashed:         false,
@@ -87,7 +84,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "exited slashed",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -100,7 +97,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "exited unslashed",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -113,7 +110,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "withdrawal possible",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -127,7 +124,7 @@ func Test_ValidatorStatus(t *testing.T) {
 		{
 			name: "withdrawal done",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -141,7 +138,7 @@ func Test_ValidatorStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			readOnlyVal, err := state_native.NewValidator(migration.V1ValidatorToV1Alpha1(tt.args.validator))
+			readOnlyVal, err := state_native.NewValidator(tt.args.validator)
 			require.NoError(t, err)
 			got, err := ValidatorStatus(readOnlyVal, tt.args.epoch)
 			require.NoError(t, err)
@@ -156,7 +153,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 	farFutureEpoch := params.BeaconConfig().FarFutureEpoch
 
 	type args struct {
-		validator *ethpb.Validator
+		validator *ethpbalpha.Validator
 		epoch     primitives.Epoch
 	}
 	tests := []struct {
@@ -168,7 +165,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "pending initialized",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:            farFutureEpoch,
 					ActivationEligibilityEpoch: farFutureEpoch,
 				},
@@ -179,7 +176,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "pending queued",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:            10,
 					ActivationEligibilityEpoch: 2,
 				},
@@ -190,7 +187,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "active ongoing",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch: 3,
 					ExitEpoch:       farFutureEpoch,
 				},
@@ -201,7 +198,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "active slashed",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch: 3,
 					ExitEpoch:       30,
 					Slashed:         true,
@@ -213,7 +210,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "active exiting",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch: 3,
 					ExitEpoch:       30,
 					Slashed:         false,
@@ -225,7 +222,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "exited slashed",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -238,7 +235,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "exited unslashed",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -251,7 +248,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "withdrawal possible",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -265,7 +262,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 		{
 			name: "withdrawal done",
 			args: args{
-				validator: &ethpb.Validator{
+				validator: &ethpbalpha.Validator{
 					ActivationEpoch:   3,
 					ExitEpoch:         30,
 					WithdrawableEpoch: 40,
@@ -279,7 +276,7 @@ func Test_ValidatorSubStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			readOnlyVal, err := state_native.NewValidator(migration.V1ValidatorToV1Alpha1(tt.args.validator))
+			readOnlyVal, err := state_native.NewValidator(tt.args.validator)
 			require.NoError(t, err)
 			got, err := ValidatorSubStatus(readOnlyVal, tt.args.epoch)
 			require.NoError(t, err)
@@ -288,16 +285,4 @@ func Test_ValidatorSubStatus(t *testing.T) {
 			}
 		})
 	}
-}
-
-// This test verifies how many validator statuses have meaningful values.
-// The first expected non-meaningful value will have x.String() equal to its numeric representation.
-// This test assumes we start numbering from 0 and do not skip any values.
-// Having a test like this allows us to use e.g. `if value < 10` for validity checks.
-func TestNumberOfStatuses(t *testing.T) {
-	lastValidEnumValue := 12
-	x := ethpb.ValidatorStatus(lastValidEnumValue)
-	assert.NotEqual(t, strconv.Itoa(lastValidEnumValue), x.String())
-	x = ethpb.ValidatorStatus(lastValidEnumValue + 1)
-	assert.Equal(t, strconv.Itoa(lastValidEnumValue+1), x.String())
 }
