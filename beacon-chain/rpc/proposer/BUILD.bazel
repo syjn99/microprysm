@@ -1,3 +1,4 @@
+# gazelle:ignore
 load("@prysm//tools/go:def.bzl", "go_library", "go_test")
 
 go_library(
