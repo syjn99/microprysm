@@ -1,13 +1,11 @@
-// Package rpc defines a gRPC server implementing the Ethereum consensus API as needed
+// Package rpc defines an HTTP server implementing the Ethereum consensus API as needed
 // by validator clients and consumers of chain data.
 package rpc
 
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
-	"sync"
 
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/blockchain"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/builder"
@@ -33,44 +31,20 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/startup"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/state/stategen"
 	chainSync "github.com/OffchainLabs/prysm/v7/beacon-chain/sync"
-	"github.com/OffchainLabs/prysm/v7/config/features"
-	"github.com/OffchainLabs/prysm/v7/config/params"
-	"github.com/OffchainLabs/prysm/v7/monitoring/tracing"
-	ethpbv1alpha1 "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
-	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	grpcopentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
-	grpcprometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/reflection"
 )
 
 // Service defining an RPC server for a beacon node.
 type Service struct {
-	cfg                  *Config
-	ctx                  context.Context
-	cancel               context.CancelFunc
-	listener             net.Listener
-	grpcServer           *grpc.Server
-	incomingAttestation  chan *ethpbv1alpha1.Attestation
-	credentialError      error
-	connectedRPCClients  map[net.Addr]bool
-	clientConnectionLock sync.Mutex
-	proposerServer       *proposer.Server
+	cfg            *Config
+	ctx            context.Context
+	cancel         context.CancelFunc
+	proposerServer *proposer.Server
 }
 
 // Config options for the beacon node RPC server.
 type Config struct {
 	ExecutionReconstructor           execution.Reconstructor
-	Host                             string
-	Port                             string
-	CertFlag                         string
-	KeyFlag                          string
 	BeaconMonitoringHost             string
 	BeaconMonitoringPort             int
 	BeaconDB                         db.HeadAccessDatabase
@@ -109,7 +83,6 @@ type Config struct {
 	BlockNotifier                    blockfeed.Notifier
 	OperationNotifier                opfeed.Notifier
 	StateGen                         *stategen.State
-	MaxMsgSize                       int
 	ExecutionEngineCaller            execution.EngineCaller
 	OptimisticModeFetcher            blockchain.OptimisticModeFetcher
 	BlockBuilder                     builder.BlockBuilder
@@ -128,53 +101,10 @@ type Config struct {
 func NewService(ctx context.Context, cfg *Config) *Service {
 	ctx, cancel := context.WithCancel(ctx)
 	s := &Service{
-		cfg:                 cfg,
-		ctx:                 ctx,
-		cancel:              cancel,
-		incomingAttestation: make(chan *ethpbv1alpha1.Attestation, params.BeaconConfig().DefaultBufferSize),
-		connectedRPCClients: make(map[net.Addr]bool),
+		cfg:    cfg,
+		ctx:    ctx,
+		cancel: cancel,
 	}
-
-	address := net.JoinHostPort(s.cfg.Host, s.cfg.Port)
-	lis, err := net.Listen("tcp", address)
-	if err != nil {
-		log.WithError(err).Errorf("Could not listen to port in Start() %s", address)
-	}
-	s.listener = lis
-	log.WithField("address", address).Info("Beacon chain gRPC server listening")
-
-	opts := []grpc.ServerOption{
-		grpc.StatsHandler(otelgrpc.NewServerHandler()),
-		grpc.StreamInterceptor(middleware.ChainStreamServer(
-			recovery.StreamServerInterceptor(
-				recovery.WithRecoveryHandlerContext(tracing.RecoveryHandlerFunc),
-			),
-			grpcprometheus.StreamServerInterceptor,
-			grpcopentracing.StreamServerInterceptor(),
-			s.validatorStreamConnectionInterceptor,
-		)),
-		grpc.UnaryInterceptor(middleware.ChainUnaryServer(
-			recovery.UnaryServerInterceptor(
-				recovery.WithRecoveryHandlerContext(tracing.RecoveryHandlerFunc),
-			),
-			grpcprometheus.UnaryServerInterceptor,
-			grpcopentracing.UnaryServerInterceptor(),
-			s.validatorUnaryConnectionInterceptor,
-		)),
-		grpc.MaxRecvMsgSize(s.cfg.MaxMsgSize),
-	}
-	if s.cfg.CertFlag != "" && s.cfg.KeyFlag != "" {
-		creds, err := credentials.NewServerTLSFromFile(s.cfg.CertFlag, s.cfg.KeyFlag)
-		if err != nil {
-			log.WithError(err).Fatal("Could not load TLS keys")
-		}
-		opts = append(opts, grpc.Creds(creds))
-	} else {
-		log.Warn("You are using an insecure gRPC server. If you are running your beacon node and " +
-			"validator on the same machines, you can ignore this message. If you want to know " +
-			"how to enable secure connections, see: https://docs.prylabs.network/docs/prysm-usage/secure-grpc")
-	}
-	s.grpcServer = grpc.NewServer(opts...)
 
 	var stateCache stategen.CachedGetter
 	if s.cfg.StateGen != nil {
@@ -266,9 +196,6 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 		}
 	}
 
-	// Register reflection service on gRPC server.
-	reflection.Register(s.grpcServer)
-
 	return s
 }
 
@@ -276,29 +203,17 @@ func NewService(ctx context.Context, cfg *Config) *Service {
 var _ stategen.CanonicalChecker = blockchain.ChainInfoFetcher(nil)
 var _ stategen.CurrentSlotter = blockchain.ChainInfoFetcher(nil)
 
-// Start the gRPC server.
+// Start the service.
 func (s *Service) Start() {
-	grpcprometheus.EnableHandlingTimeHistogram()
-	go func() {
-		if s.listener != nil {
-			if err := s.grpcServer.Serve(s.listener); err != nil {
-				log.WithError(err).Errorf("Could not serve gRPC")
-			}
-		}
-	}()
 }
 
 // Stop the service.
 func (s *Service) Stop() error {
 	s.cancel()
-	if s.listener != nil {
-		s.grpcServer.GracefulStop()
-		log.Debug("Completed graceful stop of beacon-chain gRPC server")
-	}
 	return nil
 }
 
-// Status returns nil or credentialError
+// Status returns nil or an error if the service is not healthy.
 func (s *Service) Status() error {
 	optimistic, err := s.cfg.OptimisticModeFetcher.IsOptimistic(s.ctx)
 	if err != nil {
@@ -311,48 +226,5 @@ func (s *Service) Status() error {
 	if s.cfg.SyncService.Syncing() {
 		return errors.New("syncing")
 	}
-	if s.credentialError != nil {
-		return s.credentialError
-	}
 	return nil
-}
-
-// Stream interceptor for new validator client connections to the beacon node.
-func (s *Service) validatorStreamConnectionInterceptor(
-	srv any,
-	ss grpc.ServerStream,
-	_ *grpc.StreamServerInfo,
-	handler grpc.StreamHandler,
-) error {
-	s.logNewClientConnection(ss.Context())
-	return handler(srv, ss)
-}
-
-// Unary interceptor for new validator client connections to the beacon node.
-func (s *Service) validatorUnaryConnectionInterceptor(
-	ctx context.Context,
-	req any,
-	_ *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (any, error) {
-	s.logNewClientConnection(ctx)
-	return handler(ctx, req)
-}
-
-func (s *Service) logNewClientConnection(ctx context.Context) {
-	if features.Get().DisableGRPCConnectionLogs {
-		return
-	}
-	if clientInfo, ok := peer.FromContext(ctx); ok {
-		// Check if we have not yet observed this grpc client connection
-		// in the running beacon node.
-		s.clientConnectionLock.Lock()
-		defer s.clientConnectionLock.Unlock()
-		if !s.connectedRPCClients[clientInfo.Addr] {
-			log.WithFields(logrus.Fields{
-				"addr": clientInfo.Addr.String(),
-			}).Infof("gRPC client connected to beacon node")
-			s.connectedRPCClients[clientInfo.Addr] = true
-		}
-	}
 }

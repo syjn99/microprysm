@@ -104,8 +104,6 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    eth_network = "minimal",
-    tags = ["minimal"],
     srcs = [
         "construct_generic_block_test.go",
         "proposer_altair_test.go",
@@ -128,6 +126,8 @@ go_test(
         "unblinder_test.go",
     ],
     embed = [":go_default_library"],
+    eth_network = "minimal",
+    tags = ["minimal"],
     deps = [
         "//api/client/builder:go_default_library",
         "//beacon-chain/blockchain/kzg:go_default_library",
@@ -196,8 +196,8 @@ go_test(
 go_test(
     name = "go_mainnet_test",
     srcs = [
-        "proposer_deneb_bench_test.go",
-        "proposer_utils_bench_test.go",
+        "proposer_deneb_bench_test.go",  # keep
+        "proposer_utils_bench_test.go",  # keep
     ],
     embed = [":go_default_library"],
     deps = [
