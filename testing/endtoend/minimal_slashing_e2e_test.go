@@ -23,12 +23,11 @@ func TestEndToEnd_Slasher_MinimalConfig(t *testing.T) {
 		BeaconFlags: []string{
 			"--slasher",
 		},
-		ValidatorFlags:   []string{},
-		EpochsToRun:      6,
-		TestSync:         false,
-		TestFeature:      false,
-		TestDeposits:     false,
-		UseBeaconRestApi: true,
+		ValidatorFlags: []string{},
+		EpochsToRun:    6,
+		TestSync:       false,
+		TestFeature:    false,
+		TestDeposits:   false,
 		Evaluators: []types.Evaluator{
 			ev.PeersConnect,
 			ev.HealthzCheck,

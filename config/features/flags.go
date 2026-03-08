@@ -129,11 +129,6 @@ var (
 		Name:  "save-full-execution-payloads",
 		Usage: "Saves beacon blocks with full execution payloads instead of execution payload headers in the database.",
 	}
-	EnableBeaconRESTApi = &cli.BoolFlag{
-		Name:  "enable-beacon-rest-api",
-		Usage: "Enables the beacon REST API when querying a beacon node. Enabled by default; use --enable-beacon-rest-api=false to disable.",
-		Value: true,
-	}
 	enableHashtree = &cli.BoolFlag{
 		Name:  "enable-hashtree",
 		Usage: "(Experimental): Enables the hashtree hashing library.",
@@ -240,7 +235,6 @@ var ValidatorFlags = append(deprecatedFlags, []cli.Flag{
 	enableSlashingProtectionPruning,
 	EnableMinimalSlashingProtection,
 	enableDoppelGangerProtection,
-	EnableBeaconRESTApi,
 	DisableDutiesV2,
 	EnableWebFlag,
 }...)

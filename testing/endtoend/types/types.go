@@ -46,12 +46,6 @@ func WithValidatorCrossClient() E2EConfigOpt {
 	}
 }
 
-func WithValidatorRESTApi() E2EConfigOpt {
-	return func(cfg *E2EConfig) {
-		cfg.UseBeaconRestApi = true
-	}
-}
-
 func WithBuilder() E2EConfigOpt {
 	return func(cfg *E2EConfig) {
 		cfg.UseBuilder = true
@@ -104,7 +98,6 @@ type E2EConfig struct {
 	TestDeposits            bool
 	UseFixedPeerIDs         bool
 	UseValidatorCrossClient bool
-	UseBeaconRestApi        bool
 	UseBuilder              bool
 	UseLargeBlobs           bool // Use large blob transactions (6 blobs per tx) for BPO testing
 	EpochsToRun             uint64
