@@ -15,7 +15,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/consensus-types/validator"
 	"github.com/OffchainLabs/prysm/v7/monitoring/tracing/trace"
 	"github.com/OffchainLabs/prysm/v7/network/httputil"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 )
@@ -80,7 +79,7 @@ func (s *Server) GetValidatorCount(w http.ResponseWriter, r *http.Request) {
 
 	var statusVals []validator.Status
 	for _, status := range r.URL.Query()["status"] {
-		statusVal, ok := ethpb.ValidatorStatus_value[strings.ToUpper(status)]
+		ok, statusVal := validator.StatusFromString(strings.ToLower(status))
 		if !ok {
 			errJson := &httputil.DefaultJsonError{
 				Message: fmt.Sprintf("invalid status query parameter: %v", status),
@@ -90,14 +89,12 @@ func (s *Server) GetValidatorCount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		statusVals = append(statusVals, validator.Status(statusVal))
+		statusVals = append(statusVals, statusVal)
 	}
 
 	// If no status was provided then consider all the statuses to return validator count for each status.
 	if len(statusVals) == 0 {
-		for _, val := range ethpb.ValidatorStatus_value {
-			statusVals = append(statusVals, validator.Status(val))
-		}
+		statusVals = validator.AllStatuses()
 	}
 
 	epoch := slots.ToEpoch(st.Slot())

@@ -26,7 +26,6 @@ import (
 	payloadattribute "github.com/OffchainLabs/prysm/v7/consensus-types/payload-attribute"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	enginev1 "github.com/OffchainLabs/prysm/v7/proto/engine/v1"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
 	"github.com/OffchainLabs/prysm/v7/testing/util"
@@ -414,7 +413,7 @@ func TestStreamEvents_OperationsEvents(t *testing.T) {
 			},
 			{
 				Type: statefeed.NewHead,
-				Data: &ethpb.EventHead{
+				Data: &statefeed.EventHeadData{
 					Slot:                      0,
 					Block:                     make([]byte, 32),
 					State:                     make([]byte, 32),
@@ -426,7 +425,7 @@ func TestStreamEvents_OperationsEvents(t *testing.T) {
 			},
 			{
 				Type: statefeed.Reorg,
-				Data: &ethpb.EventChainReorg{
+				Data: &statefeed.EventChainReorgData{
 					Slot:                0,
 					Depth:               0,
 					OldHeadBlock:        make([]byte, 32),
@@ -439,10 +438,10 @@ func TestStreamEvents_OperationsEvents(t *testing.T) {
 			},
 			{
 				Type: statefeed.FinalizedCheckpoint,
-				Data: &ethpb.EventFinalizedCheckpoint{
+				Data: &statefeed.EventFinalizedCheckpointData{
+					Epoch:               0,
 					Block:               make([]byte, 32),
 					State:               make([]byte, 32),
-					Epoch:               0,
 					ExecutionOptimistic: false,
 				},
 			},

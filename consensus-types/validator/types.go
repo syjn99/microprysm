@@ -55,6 +55,25 @@ func (s Status) String() string {
 	}
 }
 
+// AllStatuses returns all known validator statuses.
+func AllStatuses() []Status {
+	return []Status{
+		PendingInitialized,
+		PendingQueued,
+		ActiveOngoing,
+		ActiveExiting,
+		ActiveSlashed,
+		ExitedUnslashed,
+		ExitedSlashed,
+		WithdrawalPossible,
+		WithdrawalDone,
+		Active,
+		Pending,
+		Exited,
+		Withdrawal,
+	}
+}
+
 func StatusFromString(s string) (bool, Status) {
 	switch s {
 	case "pending_initialized":
