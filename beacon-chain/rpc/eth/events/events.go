@@ -459,15 +459,15 @@ func topicForEvent(event *feed.Event) string {
 		return ProposerSlashingTopic
 	case *operation.BlockGossipReceivedData:
 		return BlockGossipTopic
-	case *statefeed.EventHeadData:
+	case *statefeed.HeadData:
 		return HeadTopic
-	case *statefeed.EventFinalizedCheckpointData:
+	case *statefeed.FinalizedCheckpointData:
 		return FinalizedCheckpointTopic
 	case interfaces.LightClientFinalityUpdate:
 		return LightClientFinalityUpdateTopic
 	case interfaces.LightClientOptimisticUpdate:
 		return LightClientOptimisticUpdateTopic
-	case *statefeed.EventChainReorgData:
+	case *statefeed.ChainReorgData:
 		return ChainReorgTopic
 	case *statefeed.BlockProcessedData:
 		return BlockTopic
@@ -493,7 +493,7 @@ func (s *Server) lazyReaderForEvent(ctx context.Context, event *feed.Event, topi
 	switch v := event.Data.(type) {
 	case payloadattribute.EventData:
 		return s.payloadAttributesReader(ctx, v)
-	case *statefeed.EventHeadData:
+	case *statefeed.HeadData:
 		// The head event is a special case because, if the client requested the payload attributes topic,
 		// we send two event messages in reaction; the head event and the payload attributes.
 		return func() io.Reader {
@@ -604,7 +604,7 @@ func (s *Server) lazyReaderForEvent(ctx context.Context, event *feed.Event, topi
 		return func() io.Reader {
 			return jsonMarshalReader(eventName, structs.ProposerSlashingFromConsensus(v.ProposerSlashing))
 		}, nil
-	case *statefeed.EventFinalizedCheckpointData:
+	case *statefeed.FinalizedCheckpointData:
 		return func() io.Reader {
 			return jsonMarshalReader(eventName, structs.FinalizedCheckpointEventFromData(v))
 		}, nil
@@ -632,7 +632,7 @@ func (s *Server) lazyReaderForEvent(ctx context.Context, event *feed.Event, topi
 		return func() io.Reader {
 			return jsonMarshalReader(eventName, ev)
 		}, nil
-	case *statefeed.EventChainReorgData:
+	case *statefeed.ChainReorgData:
 		return func() io.Reader {
 			return jsonMarshalReader(eventName, structs.ChainReorgEventFromData(v))
 		}, nil

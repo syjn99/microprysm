@@ -168,9 +168,9 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 		events := notifier.ReceivedEvents()
 		require.Equal(t, 1, len(events))
 
-		eventHead, ok := events[0].Data.(*statefeed.EventHeadData)
+		eventHead, ok := events[0].Data.(*statefeed.HeadData)
 		require.Equal(t, true, ok)
-		wanted := &statefeed.EventHeadData{
+		wanted := &statefeed.HeadData{
 			Slot:                      1,
 			Block:                     newHeadRoot[:],
 			State:                     newHeadStateRoot[:],
@@ -206,9 +206,9 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 		events := notifier.ReceivedEvents()
 		require.Equal(t, 1, len(events))
 
-		eventHead, ok := events[0].Data.(*statefeed.EventHeadData)
+		eventHead, ok := events[0].Data.(*statefeed.HeadData)
 		require.Equal(t, true, ok)
-		wanted := &statefeed.EventHeadData{
+		wanted := &statefeed.HeadData{
 			Slot:                      epoch2Start,
 			Block:                     newHeadRoot[:],
 			State:                     newHeadStateRoot[:],
@@ -236,9 +236,9 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 		events := notifier.ReceivedEvents()
 		require.Equal(t, 1, len(events))
 
-		eventHead, ok := events[0].Data.(*statefeed.EventHeadData)
+		eventHead, ok := events[0].Data.(*statefeed.HeadData)
 		require.Equal(t, true, ok)
-		wanted := &statefeed.EventHeadData{
+		wanted := &statefeed.HeadData{
 			Slot:                      newHeadSlot,
 			Block:                     newHeadRoot[:],
 			State:                     newHeadStateRoot[:],

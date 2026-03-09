@@ -131,7 +131,7 @@ func (s *Service) saveHead(ctx context.Context, newHeadRoot [32]byte, headBlock 
 
 		s.cfg.StateNotifier.StateFeed().Send(&feed.Event{
 			Type: statefeed.Reorg,
-			Data: &statefeed.EventChainReorgData{
+			Data: &statefeed.ChainReorgData{
 				Slot:                newHeadSlot,
 				Depth:               max(uint64(headSlot-forkSlot), uint64(newHeadSlot-forkSlot)),
 				OldHeadBlock:        oldHeadRoot[:],
@@ -357,7 +357,7 @@ func (s *Service) notifyNewHeadEvent(
 
 	s.cfg.StateNotifier.StateFeed().Send(&feed.Event{
 		Type: statefeed.NewHead,
-		Data: &statefeed.EventHeadData{
+		Data: &statefeed.HeadData{
 			Slot:                      newHeadSlot,
 			Block:                     newHeadRoot,
 			State:                     newHeadStateRoot,

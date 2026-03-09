@@ -81,8 +81,8 @@ type PayloadProcessedData struct {
 	BlockRoot [32]byte
 }
 
-// EventHeadData is the data sent with NewHead events.
-type EventHeadData struct {
+// HeadData is the data sent with NewHead events.
+type HeadData struct {
 	Slot                      primitives.Slot
 	Block                     []byte
 	State                     []byte
@@ -92,8 +92,8 @@ type EventHeadData struct {
 	ExecutionOptimistic       bool
 }
 
-// EventChainReorgData is the data sent with Reorg events.
-type EventChainReorgData struct {
+// ChainReorgData is the data sent with Reorg events.
+type ChainReorgData struct {
 	OldHeadBlock        []byte
 	NewHeadBlock        []byte
 	OldHeadState        []byte
@@ -104,8 +104,8 @@ type EventChainReorgData struct {
 	ExecutionOptimistic bool
 }
 
-// EventFinalizedCheckpointData is the data sent with FinalizedCheckpoint events.
-type EventFinalizedCheckpointData struct {
+// FinalizedCheckpointData is the data sent with FinalizedCheckpoint events.
+type FinalizedCheckpointData struct {
 	Epoch               primitives.Epoch
 	Block               []byte
 	State               []byte

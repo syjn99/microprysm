@@ -448,7 +448,7 @@ func Test_sendNewFinalizedEvent(t *testing.T) {
 	require.Equal(t, 1, len(notifier.ReceivedEvents()))
 	e := notifier.ReceivedEvents()[0]
 	assert.Equal(t, statefeed.FinalizedCheckpoint, int(e.Type))
-	fc, ok := e.Data.(*statefeed.EventFinalizedCheckpointData)
+	fc, ok := e.Data.(*statefeed.FinalizedCheckpointData)
 	require.Equal(t, true, ok, "event has wrong data type")
 	assert.Equal(t, primitives.Epoch(123), fc.Epoch)
 	assert.DeepEqual(t, sbbRoot[:], fc.Block)
@@ -515,7 +515,7 @@ func Test_executePostFinalizationTasks(t *testing.T) {
 		}, 5*time.Second, 50*time.Millisecond, "Expected exactly 1 state notification")
 		e := notifier.ReceivedEvents()[0]
 		assert.Equal(t, statefeed.FinalizedCheckpoint, int(e.Type))
-		fc, ok := e.Data.(*statefeed.EventFinalizedCheckpointData)
+		fc, ok := e.Data.(*statefeed.FinalizedCheckpointData)
 		require.Equal(t, true, ok, "event has wrong data type")
 		assert.Equal(t, primitives.Epoch(123), fc.Epoch)
 		assert.DeepEqual(t, headRoot[:], fc.Block)
@@ -556,7 +556,7 @@ func Test_executePostFinalizationTasks(t *testing.T) {
 		}, 5*time.Second, 50*time.Millisecond, "Expected exactly 1 state notification")
 		e := notifier.ReceivedEvents()[0]
 		assert.Equal(t, statefeed.FinalizedCheckpoint, int(e.Type))
-		fc, ok := e.Data.(*statefeed.EventFinalizedCheckpointData)
+		fc, ok := e.Data.(*statefeed.FinalizedCheckpointData)
 		require.Equal(t, true, ok, "event has wrong data type")
 		assert.Equal(t, primitives.Epoch(123), fc.Epoch)
 		assert.DeepEqual(t, headRoot[:], fc.Block)

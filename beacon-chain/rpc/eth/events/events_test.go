@@ -413,7 +413,7 @@ func TestStreamEvents_OperationsEvents(t *testing.T) {
 			},
 			{
 				Type: statefeed.NewHead,
-				Data: &statefeed.EventHeadData{
+				Data: &statefeed.HeadData{
 					Slot:                      0,
 					Block:                     make([]byte, 32),
 					State:                     make([]byte, 32),
@@ -425,7 +425,7 @@ func TestStreamEvents_OperationsEvents(t *testing.T) {
 			},
 			{
 				Type: statefeed.Reorg,
-				Data: &statefeed.EventChainReorgData{
+				Data: &statefeed.ChainReorgData{
 					Slot:                0,
 					Depth:               0,
 					OldHeadBlock:        make([]byte, 32),
@@ -438,7 +438,7 @@ func TestStreamEvents_OperationsEvents(t *testing.T) {
 			},
 			{
 				Type: statefeed.FinalizedCheckpoint,
-				Data: &statefeed.EventFinalizedCheckpointData{
+				Data: &statefeed.FinalizedCheckpointData{
 					Epoch:               0,
 					Block:               make([]byte, 32),
 					State:               make([]byte, 32),

@@ -613,7 +613,7 @@ func (s *Service) sendNewFinalizedEvent(ctx context.Context, postState state.Bea
 	// Send an event regarding the new finalized checkpoint over a common event feed.
 	s.cfg.StateNotifier.StateFeed().Send(&feed.Event{
 		Type: statefeed.FinalizedCheckpoint,
-		Data: &statefeed.EventFinalizedCheckpointData{
+		Data: &statefeed.FinalizedCheckpointData{
 			Epoch:               postState.FinalizedCheckpoint().Epoch,
 			Block:               postState.FinalizedCheckpoint().Root,
 			State:               stateRoot[:],

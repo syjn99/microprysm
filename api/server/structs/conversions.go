@@ -1529,7 +1529,7 @@ func PendingConsolidationsFromConsensus(cs []*eth.PendingConsolidation) []*Pendi
 	return consolidations
 }
 
-func HeadEventFromData(event *statefeed.EventHeadData) *HeadEvent {
+func HeadEventFromData(event *statefeed.HeadData) *HeadEvent {
 	return &HeadEvent{
 		Slot:                      fmt.Sprintf("%d", event.Slot),
 		Block:                     hexutil.Encode(event.Block),
@@ -1541,7 +1541,7 @@ func HeadEventFromData(event *statefeed.EventHeadData) *HeadEvent {
 	}
 }
 
-func FinalizedCheckpointEventFromData(event *statefeed.EventFinalizedCheckpointData) *FinalizedCheckpointEvent {
+func FinalizedCheckpointEventFromData(event *statefeed.FinalizedCheckpointData) *FinalizedCheckpointEvent {
 	return &FinalizedCheckpointEvent{
 		Block:               hexutil.Encode(event.Block),
 		State:               hexutil.Encode(event.State),
@@ -1550,7 +1550,7 @@ func FinalizedCheckpointEventFromData(event *statefeed.EventFinalizedCheckpointD
 	}
 }
 
-func ChainReorgEventFromData(event *statefeed.EventChainReorgData) *ChainReorgEvent {
+func ChainReorgEventFromData(event *statefeed.ChainReorgData) *ChainReorgEvent {
 	return &ChainReorgEvent{
 		Slot:                fmt.Sprintf("%d", event.Slot),
 		Depth:               fmt.Sprintf("%d", event.Depth),
