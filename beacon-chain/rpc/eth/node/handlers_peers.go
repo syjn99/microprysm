@@ -62,10 +62,6 @@ func (s *Server) GetPeer(w http.ResponseWriter, r *http.Request) {
 		httputil.HandleError(w, "Could not obtain direction: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if eth.PeerDirection(direction) == eth.PeerDirection_UNKNOWN {
-		httputil.HandleError(w, "Peer not found", http.StatusNotFound)
-		return
-	}
 
 	resp := &structs.GetPeerResponse{
 		Data: &structs.Peer{

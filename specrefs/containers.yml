@@ -52,7 +52,7 @@
 
 - name: AttestationData#phase0
   sources:
-    - file: proto/eth/v1/attestation.proto
+    - file: proto/prysm/v1alpha1/attestation.proto
       search: message AttestationData {
   spec: |
     <spec ssz_object="AttestationData" fork="phase0" hash="854be491">
@@ -66,7 +66,7 @@
 
 - name: AttesterSlashing#phase0
   sources:
-    - file: proto/eth/v1/beacon_block.proto
+    - file: proto/prysm/v1alpha1/beacon_block.proto
       search: message AttesterSlashing {
   spec: |
     <spec ssz_object="AttesterSlashing" fork="phase0" hash="caf8a91a">
@@ -102,7 +102,7 @@
 
 - name: BeaconBlock#phase0
   sources:
-    - file: proto/eth/v1/beacon_block.proto
+    - file: proto/prysm/v1alpha1/beacon_block.proto
       search: message BeaconBlock {
   spec: |
     <spec ssz_object="BeaconBlock" fork="phase0" hash="79909f0a">
@@ -116,7 +116,7 @@
 
 - name: BeaconBlockBody#phase0
   sources:
-    - file: proto/eth/v1/beacon_block.proto
+    - file: proto/prysm/v1alpha1/beacon_block.proto
       search: message BeaconBlockBody {
   spec: |
     <spec ssz_object="BeaconBlockBody" fork="phase0" hash="e982fea2">
@@ -268,7 +268,7 @@
 
 - name: BeaconBlockHeader#phase0
   sources:
-    - file: proto/eth/v1/beacon_block.proto
+    - file: proto/prysm/v1alpha1/beacon_core_types.proto
       search: message BeaconBlockHeader {
   spec: |
     <spec ssz_object="BeaconBlockHeader" fork="phase0" hash="0be4f2e7">
@@ -687,7 +687,7 @@
 
 - name: Checkpoint#phase0
   sources:
-    - file: proto/eth/v1/attestation.proto
+    - file: proto/prysm/v1alpha1/attestation.proto
       search: message Checkpoint {
   spec: |
     <spec ssz_object="Checkpoint" fork="phase0" hash="24947006">
@@ -768,7 +768,7 @@
 
 - name: Deposit#phase0
   sources:
-    - file: proto/eth/v1/beacon_block.proto
+    - file: proto/prysm/v1alpha1/beacon_core_types.proto
       search: message Deposit {
   spec: |
     <spec ssz_object="Deposit" fork="phase0" hash="cc281399">
@@ -1386,7 +1386,7 @@
 
 - name: ProposerSlashing#phase0
   sources:
-    - file: proto/eth/v1/beacon_block.proto
+    - file: proto/prysm/v1alpha1/beacon_core_types.proto
       search: message ProposerSlashing {
   spec: |
     <spec ssz_object="ProposerSlashing" fork="phase0" hash="2cd89ad8">
@@ -1603,7 +1603,7 @@
 
 - name: VoluntaryExit#phase0
   sources:
-    - file: proto/eth/v1/beacon_block.proto
+    - file: proto/prysm/v1alpha1/beacon_core_types.proto
       search: message VoluntaryExit {
   spec: |
     <spec ssz_object="VoluntaryExit" fork="phase0" hash="aa780f75">
