@@ -319,10 +319,10 @@ func generateSignedBeaconBlockJSON(
 			StateRoot:     hexutil.Encode(bytesutil.PadTo([]byte(stateRoot), hashLen)),
 			Body: &structs.BeaconBlockBody{
 				RandaoReveal: hexutil.Encode(bytesutil.PadTo([]byte("bad randao"), fieldparams.BLSSignatureLength)),
-				Eth1Data: &structs.Eth1Data{
-					BlockHash:    hexutil.Encode(bytesutil.PadTo([]byte("bad block hash"), hashLen)),
-					DepositRoot:  hexutil.Encode(bytesutil.PadTo([]byte("bad deposit root"), hashLen)),
-					DepositCount: "1",
+				Eth1Data: &eth.Eth1Data{
+					BlockHash:    bytesutil.PadTo([]byte("bad block hash"), hashLen),
+					DepositRoot:  bytesutil.PadTo([]byte("bad deposit root"), hashLen),
+					DepositCount: 1,
 				},
 				Graffiti:          hexutil.Encode(bytesutil.PadTo([]byte("teehee"), hashLen)),
 				ProposerSlashings: []*structs.ProposerSlashing{},

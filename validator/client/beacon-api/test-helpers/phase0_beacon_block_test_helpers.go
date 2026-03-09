@@ -223,10 +223,10 @@ func GenerateJsonPhase0BeaconBlock() *structs.BeaconBlock {
 		StateRoot:     FillEncodedByteSlice(32, 4),
 		Body: &structs.BeaconBlockBody{
 			RandaoReveal: FillEncodedByteSlice(96, 5),
-			Eth1Data: &structs.Eth1Data{
-				DepositRoot:  FillEncodedByteSlice(32, 6),
-				DepositCount: "7",
-				BlockHash:    FillEncodedByteSlice(32, 8),
+			Eth1Data: &ethpb.Eth1Data{
+				DepositRoot:  FillByteSlice(32, 6),
+				DepositCount: 7,
+				BlockHash:    FillByteSlice(32, 8),
 			},
 			Graffiti: FillEncodedByteSlice(32, 9),
 			ProposerSlashings: []*structs.ProposerSlashing{

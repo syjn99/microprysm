@@ -66,23 +66,6 @@ func TestBeaconBlockJsonHelpers_JsonifyBlsToExecutionChanges(t *testing.T) {
 	assert.DeepEqual(t, expectedResult, structs.SignedBLSChangesFromConsensus(input))
 }
 
-func TestBeaconBlockJsonHelpers_JsonifyEth1Data(t *testing.T) {
-	input := &ethpb.Eth1Data{
-		DepositRoot:  []byte{1},
-		DepositCount: 2,
-		BlockHash:    []byte{3},
-	}
-
-	expectedResult := &structs.Eth1Data{
-		DepositRoot:  hexutil.Encode([]byte{1}),
-		DepositCount: "2",
-		BlockHash:    hexutil.Encode([]byte{3}),
-	}
-
-	result := jsonifyEth1Data(input)
-	assert.DeepEqual(t, expectedResult, result)
-}
-
 func TestBeaconBlockJsonHelpers_JsonifyAttestations(t *testing.T) {
 	input := []*ethpb.Attestation{
 		{

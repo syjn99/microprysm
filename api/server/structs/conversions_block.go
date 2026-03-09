@@ -150,18 +150,7 @@ func (b *BeaconBlock) ToConsensus() (*eth.BeaconBlock, error) {
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -193,12 +182,8 @@ func (b *BeaconBlock) ToConsensus() (*eth.BeaconBlock, error) {
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BeaconBlockBody{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -227,7 +212,7 @@ func BeaconBlockFromConsensus(b *eth.BeaconBlock) *BeaconBlock {
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BeaconBlockBody{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -348,18 +333,7 @@ func (b *BeaconBlockAltair) ToConsensus() (*eth.BeaconBlockAltair, error) {
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -398,12 +372,8 @@ func (b *BeaconBlockAltair) ToConsensus() (*eth.BeaconBlockAltair, error) {
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BeaconBlockBodyAltair{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -426,7 +396,7 @@ func BeaconBlockAltairFromConsensus(b *eth.BeaconBlockAltair) *BeaconBlockAltair
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BeaconBlockBodyAltair{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -517,18 +487,7 @@ func (b *BeaconBlockBellatrix) ToConsensus() (*eth.BeaconBlockBellatrix, error) 
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -572,12 +531,8 @@ func (b *BeaconBlockBellatrix) ToConsensus() (*eth.BeaconBlockBellatrix, error) 
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BeaconBlockBodyBellatrix{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -658,18 +613,7 @@ func (b *BlindedBeaconBlockBellatrix) ToConsensus() (*eth.BlindedBeaconBlockBell
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -712,12 +656,8 @@ func (b *BlindedBeaconBlockBellatrix) ToConsensus() (*eth.BlindedBeaconBlockBell
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BlindedBeaconBlockBodyBellatrix{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -746,7 +686,7 @@ func BlindedBeaconBlockBellatrixFromConsensus(b *eth.BlindedBeaconBlockBellatrix
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BlindedBeaconBlockBodyBellatrix{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -786,7 +726,7 @@ func BeaconBlockBellatrixFromConsensus(b *eth.BeaconBlockBellatrix) (*BeaconBloc
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BeaconBlockBodyBellatrix{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -882,18 +822,7 @@ func (b *BeaconBlockCapella) ToConsensus() (*eth.BeaconBlockCapella, error) {
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -943,12 +872,8 @@ func (b *BeaconBlockCapella) ToConsensus() (*eth.BeaconBlockCapella, error) {
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BeaconBlockBodyCapella{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -1030,18 +955,7 @@ func (b *BlindedBeaconBlockCapella) ToConsensus() (*eth.BlindedBeaconBlockCapell
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -1091,12 +1005,8 @@ func (b *BlindedBeaconBlockCapella) ToConsensus() (*eth.BlindedBeaconBlockCapell
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BlindedBeaconBlockBodyCapella{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -1126,7 +1036,7 @@ func BlindedBeaconBlockCapellaFromConsensus(b *eth.BlindedBeaconBlockCapella) (*
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BlindedBeaconBlockBodyCapella{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -1167,7 +1077,7 @@ func BeaconBlockCapellaFromConsensus(b *eth.BeaconBlockCapella) (*BeaconBlockCap
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BeaconBlockBodyCapella{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -1314,18 +1224,7 @@ func (b *BeaconBlockDeneb) ToConsensus() (*eth.BeaconBlockDeneb, error) {
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -1384,12 +1283,8 @@ func (b *BeaconBlockDeneb) ToConsensus() (*eth.BeaconBlockDeneb, error) {
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BeaconBlockBodyDeneb{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -1500,18 +1395,7 @@ func (b *BlindedBeaconBlockDeneb) ToConsensus() (*eth.BlindedBeaconBlockDeneb, e
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -1571,12 +1455,8 @@ func (b *BlindedBeaconBlockDeneb) ToConsensus() (*eth.BlindedBeaconBlockDeneb, e
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BlindedBeaconBlockBodyDeneb{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -1666,7 +1546,7 @@ func BlindedBeaconBlockDenebFromConsensus(b *eth.BlindedBeaconBlockDeneb) (*Blin
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BlindedBeaconBlockBodyDeneb{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -1711,7 +1591,7 @@ func BeaconBlockDenebFromConsensus(b *eth.BeaconBlockDeneb) (*BeaconBlockDeneb, 
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BeaconBlockBodyDeneb{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsFromConsensus(b.Body.AttesterSlashings),
@@ -1862,18 +1742,7 @@ func (b *BeaconBlockElectra) ToConsensus() (*eth.BeaconBlockElectra, error) {
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, common.HashLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -1940,12 +1809,8 @@ func (b *BeaconBlockElectra) ToConsensus() (*eth.BeaconBlockElectra, error) {
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BeaconBlockBodyElectra{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -2060,18 +1925,7 @@ func (b *BlindedBeaconBlockElectra) ToConsensus() (*eth.BlindedBeaconBlockElectr
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -2201,12 +2055,8 @@ func (b *BlindedBeaconBlockElectra) ToConsensus() (*eth.BlindedBeaconBlockElectr
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BlindedBeaconBlockBodyElectra{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -2295,7 +2145,7 @@ func BlindedBeaconBlockElectraFromConsensus(b *eth.BlindedBeaconBlockElectra) (*
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BlindedBeaconBlockBodyElectra{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsElectraFromConsensus(b.Body.AttesterSlashings),
@@ -2362,7 +2212,7 @@ func BeaconBlockElectraFromConsensus(b *eth.BeaconBlockElectra) (*BeaconBlockEle
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BeaconBlockBodyElectra{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsElectraFromConsensus(b.Body.AttesterSlashings),
@@ -2567,18 +2417,7 @@ func (b *BlindedBeaconBlockFulu) ToConsensus() (*eth.BlindedBeaconBlockFulu, err
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Body.Eth1Data.BlockHash, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Body.Eth1Data.BlockHash")
-	}
+
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Body.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Body.Graffiti")
@@ -2729,12 +2568,8 @@ func (b *BlindedBeaconBlockFulu) ToConsensus() (*eth.BlindedBeaconBlockFulu, err
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &eth.BlindedBeaconBlockBodyElectra{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &eth.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,
@@ -2847,7 +2682,7 @@ func BlindedBeaconBlockFuluFromConsensus(b *eth.BlindedBeaconBlockFulu) (*Blinde
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BlindedBeaconBlockBodyElectra{
 			RandaoReveal:      hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:          Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:          b.Body.Eth1Data,
 			Graffiti:          hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings: ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings: AttesterSlashingsElectraFromConsensus(b.Body.AttesterSlashings),
@@ -2916,7 +2751,7 @@ func BeaconBlockGloasFromConsensus(b *eth.BeaconBlockGloas) (*BeaconBlockGloas, 
 		StateRoot:     hexutil.Encode(b.StateRoot),
 		Body: &BeaconBlockBodyGloas{
 			RandaoReveal:              hexutil.Encode(b.Body.RandaoReveal),
-			Eth1Data:                  Eth1DataFromConsensus(b.Body.Eth1Data),
+			Eth1Data:                  b.Body.Eth1Data,
 			Graffiti:                  hexutil.Encode(b.Body.Graffiti),
 			ProposerSlashings:         ProposerSlashingsFromConsensus(b.Body.ProposerSlashings),
 			AttesterSlashings:         AttesterSlashingsElectraFromConsensus(b.Body.AttesterSlashings),
@@ -3049,18 +2884,6 @@ func (b *BeaconBlockBodyGloas) ToConsensus() (*eth.BeaconBlockBodyGloas, error) 
 	if err != nil {
 		return nil, server.NewDecodeError(err, "RandaoReveal")
 	}
-	depositRoot, err := bytesutil.DecodeHexWithLength(b.Eth1Data.DepositRoot, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Eth1Data.DepositRoot")
-	}
-	depositCount, err := strconv.ParseUint(b.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Eth1Data.DepositCount")
-	}
-	blockHash, err := bytesutil.DecodeHexWithLength(b.Eth1Data.BlockHash, fieldparams.RootLength)
-	if err != nil {
-		return nil, server.NewDecodeError(err, "Eth1Data.BlockHash")
-	}
 	graffiti, err := bytesutil.DecodeHexWithLength(b.Graffiti, fieldparams.RootLength)
 	if err != nil {
 		return nil, server.NewDecodeError(err, "Graffiti")
@@ -3107,12 +2930,8 @@ func (b *BeaconBlockBodyGloas) ToConsensus() (*eth.BeaconBlockBodyGloas, error) 
 	}
 
 	return &eth.BeaconBlockBodyGloas{
-		RandaoReveal: randaoReveal,
-		Eth1Data: &eth.Eth1Data{
-			DepositRoot:  depositRoot,
-			DepositCount: depositCount,
-			BlockHash:    blockHash,
-		},
+		RandaoReveal:      randaoReveal,
+		Eth1Data:          b.Eth1Data,
 		Graffiti:          graffiti,
 		ProposerSlashings: proposerSlashings,
 		AttesterSlashings: attesterSlashings,
