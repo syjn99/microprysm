@@ -94,13 +94,13 @@ type EventHeadData struct {
 
 // EventChainReorgData is the data sent with Reorg events.
 type EventChainReorgData struct {
-	Slot                primitives.Slot
-	Depth               uint64
 	OldHeadBlock        []byte
 	NewHeadBlock        []byte
 	OldHeadState        []byte
 	NewHeadState        []byte
+	Slot                primitives.Slot
 	Epoch               primitives.Epoch
+	Depth               uint64
 	ExecutionOptimistic bool
 }
 
