@@ -372,6 +372,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "attestation.go",
+        "eth1_data.json.go",
         "beacon_block.go",
         "cloners.go",
         "eip_7521.go",
