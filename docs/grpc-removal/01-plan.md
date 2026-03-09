@@ -189,13 +189,13 @@
 
 ## Phase 6: Remove proto/eth/v1 Package (Medium Risk)
 
-### PR 6.1: Migrate proto/migration/ away from ethv1
+### PR 6.1: Migrate proto/migration/ away from ethv1 ✅ — [PR #32](https://github.com/syjn99/microprysm/pull/32)
 **Scope:** `proto/migration/v1alpha1_to_v1.go` (4 files)
 - These convert between v1alpha1 and v1 types
 - Replace with direct conversions to api/server/structs types
 - **Risk:** Medium — used by multiple packages
 
-### PR 6.2: Remove ethv1 from beacon-chain/
+### PR 6.2: Remove ethv1 from beacon-chain/ ✅ — [PR #34](https://github.com/syjn99/microprysm/pull/34)
 **Scope:** 8 files in beacon-chain/ importing ethv1
 - blockchain/receive_block.go, head.go
 - rpc/eth/events/events.go
@@ -203,30 +203,75 @@
 - p2p/, p2p/peers/
 - **Risk:** Medium — requires type changes
 
-### PR 6.3: Remove ethv1 from testing/util/
+### PR 6.3: Remove ethv1 from testing/util/ ✅ — [PR #33](https://github.com/syjn99/microprysm/pull/33)
 **Scope:** 4 files in testing/util/
 - attestation.go, block.go
 - Replace ethv1 types with v1alpha1 or structs types
 - **Risk:** Low
 
-### PR 6.4: Delete proto/eth/v1/ directory
+### PR 6.4: Delete proto/eth/v1/ directory ✅ — [PR #35](https://github.com/syjn99/microprysm/pull/35)
 **Scope:** Entire `proto/eth/v1/` directory
 - After all references removed
 - **Risk:** None
 
 ---
 
-## Phase 7: Clean Up go.mod Dependencies
+## Phase 6.5: Clean Up Remaining proto/eth/v1 Test References
 
-### PR 7.1: Remove gRPC dependencies from go.mod
-**Scope:** `go.mod`
-- Remove: google.golang.org/grpc
-- Remove: github.com/grpc-ecosystem/go-grpc-middleware
-- Remove: github.com/grpc-ecosystem/go-grpc-prometheus
-- Remove: go.opentelemetry.io/contrib/instrumentation/.../otelgrpc
-- Remove: github.com/grpc-ecosystem/grpc-gateway/v2
-- Run `go mod tidy`
-- **Risk:** None — final cleanup
+### PR 6.5: Remove proto/eth/v1 from test files
+**Scope:** Test files still importing ethv1 types
+- `beacon-chain/p2p/peers/status_test.go` — ethv1 peer status types
+- `beacon-chain/p2p/connection_gater_test.go` — ethv1 peer types
+- Remove remaining `.pb.go` / `.ssz.go` files if still present after Phase 6.4
+- **Risk:** None — test-only changes
+
+---
+
+## Phase 7: Clean Up go.mod and Bazel Dependencies
+
+### PR 7.1: Remove gRPC dependencies from go.mod + deps.bzl
+**Scope:** `go.mod`, `go.sum`, `deps.bzl`, `BUILD.bazel` files
+
+#### Step 1: Remove gRPC imports from Go source
+- Verify no `.go` files import `google.golang.org/grpc` (should be zero after Phase 6)
+- Check for transitive imports via other packages
+
+#### Step 2: Clean up BUILD.bazel gRPC references
+- `proto/prysm/v1alpha1/BUILD.bazel` — remove `@org_golang_google_grpc` deps
+- `proto/prysm/v1alpha1/validator-client/BUILD.bazel` — remove `@org_golang_google_grpc` deps
+- `beacon-chain/rpc/proposer/BUILD.bazel` — remove `@org_golang_google_grpc` deps (note: has `# gazelle:ignore`)
+- Root `BUILD.bazel` — remove `grpc_proto_compiler` and `cast_grpc_proto_compiler` aliases
+- Remove `go_cast_grpc` compiler references from proto BUILD targets
+
+#### Step 3: Remove Go module dependencies
+```bash
+# Edit go.mod to remove direct gRPC deps:
+#   google.golang.org/grpc
+#   github.com/grpc-ecosystem/go-grpc-middleware
+#   github.com/grpc-ecosystem/go-grpc-prometheus
+#   go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc
+#   github.com/grpc-ecosystem/grpc-gateway/v2
+
+# Clean up transitive deps
+go mod tidy
+
+# Update Bazel deps (see DEPENDENCIES.md)
+bazel run //:gazelle -- update-repos -from_file=go.mod -to_macro=deps.bzl%prysm_deps -prune=true
+```
+
+#### Step 4: Verify
+```bash
+# No gRPC imports remain
+grep -r "google.golang.org/grpc" --include="*.go" -l | grep -v vendor/
+
+# Build passes
+bazel build //...
+
+# Tests pass
+bazel test //...
+```
+
+- **Risk:** Low — final cleanup. Main risk is transitive deps that still need gRPC indirectly.
 
 ---
 
@@ -240,8 +285,9 @@
 | 4 | 6 | High | Beacon chain gRPC server removal |
 | 5 | 6 | Low | Infrastructure cleanup |
 | 6 | 4 | Medium | proto/eth/v1 removal |
-| 7 | 1 | None | go.mod cleanup |
-| **Total** | **29** | | |
+| 6.5 | 1 | None | proto/eth/v1 test reference cleanup |
+| 7 | 1 | Low | go.mod + deps.bzl cleanup |
+| **Total** | **30** | | |
 
 ### Critical Path
 ```
