@@ -83,13 +83,13 @@ type PayloadProcessedData struct {
 
 // HeadData is the data sent with NewHead events.
 type HeadData struct {
-	Slot                      primitives.Slot
-	Block                     []byte
-	State                     []byte
-	EpochTransition           bool
-	PreviousDutyDependentRoot []byte
-	CurrentDutyDependentRoot  []byte
 	ExecutionOptimistic       bool
+	EpochTransition           bool
+	Slot                      primitives.Slot
+	CurrentDutyDependentRoot  []byte
+	PreviousDutyDependentRoot []byte
+	State                     []byte
+	Block                     []byte
 }
 
 // ChainReorgData is the data sent with Reorg events.
