@@ -8,6 +8,7 @@ import (
 	"time"
 
 	mock "github.com/OffchainLabs/prysm/v7/beacon-chain/blockchain/testing"
+	statefeed "github.com/OffchainLabs/prysm/v7/beacon-chain/core/feed/state"
 	testDB "github.com/OffchainLabs/prysm/v7/beacon-chain/db/testing"
 	forkchoicetypes "github.com/OffchainLabs/prysm/v7/beacon-chain/forkchoice/types"
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/operations/blstoexec"
@@ -15,7 +16,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/consensus-types/blocks"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
-	ethpbv1 "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/assert"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
@@ -168,9 +168,9 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 		events := notifier.ReceivedEvents()
 		require.Equal(t, 1, len(events))
 
-		eventHead, ok := events[0].Data.(*ethpbv1.EventHead)
+		eventHead, ok := events[0].Data.(*statefeed.HeadData)
 		require.Equal(t, true, ok)
-		wanted := &ethpbv1.EventHead{
+		wanted := &statefeed.HeadData{
 			Slot:                      1,
 			Block:                     newHeadRoot[:],
 			State:                     newHeadStateRoot[:],
@@ -178,7 +178,7 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 			PreviousDutyDependentRoot: srv.originBlockRoot[:],
 			CurrentDutyDependentRoot:  srv.originBlockRoot[:],
 		}
-		require.DeepSSZEqual(t, wanted, eventHead)
+		require.DeepEqual(t, wanted, eventHead)
 	})
 	t.Run("non_genesis_values", func(t *testing.T) {
 		bState, _ := util.DeterministicGenesisState(t, 10)
@@ -206,9 +206,9 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 		events := notifier.ReceivedEvents()
 		require.Equal(t, 1, len(events))
 
-		eventHead, ok := events[0].Data.(*ethpbv1.EventHead)
+		eventHead, ok := events[0].Data.(*statefeed.HeadData)
 		require.Equal(t, true, ok)
-		wanted := &ethpbv1.EventHead{
+		wanted := &statefeed.HeadData{
 			Slot:                      epoch2Start,
 			Block:                     newHeadRoot[:],
 			State:                     newHeadStateRoot[:],
@@ -216,7 +216,7 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 			PreviousDutyDependentRoot: make([]byte, 32),
 			CurrentDutyDependentRoot:  srv.originBlockRoot[:],
 		}
-		require.DeepSSZEqual(t, wanted, eventHead)
+		require.DeepEqual(t, wanted, eventHead)
 	})
 	t.Run("epoch transition", func(t *testing.T) {
 		srv := testServiceWithDB(t)
@@ -236,9 +236,9 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 		events := notifier.ReceivedEvents()
 		require.Equal(t, 1, len(events))
 
-		eventHead, ok := events[0].Data.(*ethpbv1.EventHead)
+		eventHead, ok := events[0].Data.(*statefeed.HeadData)
 		require.Equal(t, true, ok)
-		wanted := &ethpbv1.EventHead{
+		wanted := &statefeed.HeadData{
 			Slot:                      newHeadSlot,
 			Block:                     newHeadRoot[:],
 			State:                     newHeadStateRoot[:],
@@ -246,7 +246,7 @@ func Test_notifyNewHeadEvent(t *testing.T) {
 			PreviousDutyDependentRoot: params.BeaconConfig().ZeroHash[:],
 			CurrentDutyDependentRoot:  srv.originBlockRoot[:],
 		}
-		require.DeepSSZEqual(t, wanted, eventHead)
+		require.DeepEqual(t, wanted, eventHead)
 	})
 }
 

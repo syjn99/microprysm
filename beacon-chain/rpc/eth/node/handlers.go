@@ -12,19 +12,18 @@ import (
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/monitoring/tracing/trace"
 	"github.com/OffchainLabs/prysm/v7/network/httputil"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	"github.com/OffchainLabs/prysm/v7/runtime/version"
 	"github.com/OffchainLabs/prysm/v7/time/slots"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 var (
-	stateConnecting    = ethpb.ConnectionState_CONNECTING.String()
-	stateConnected     = ethpb.ConnectionState_CONNECTED.String()
-	stateDisconnecting = ethpb.ConnectionState_DISCONNECTING.String()
-	stateDisconnected  = ethpb.ConnectionState_DISCONNECTED.String()
-	directionInbound   = ethpb.PeerDirection_INBOUND.String()
-	directionOutbound  = ethpb.PeerDirection_OUTBOUND.String()
+	stateConnecting    = "CONNECTING"
+	stateConnected     = "CONNECTED"
+	stateDisconnecting = "DISCONNECTING"
+	stateDisconnected  = "DISCONNECTED"
+	directionInbound   = "INBOUND"
+	directionOutbound  = "OUTBOUND"
 )
 
 // GetSyncStatus requests the beacon node to describe if it's currently syncing or not, and

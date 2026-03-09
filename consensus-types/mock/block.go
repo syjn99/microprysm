@@ -7,7 +7,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/consensus-types/interfaces"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	enginev1 "github.com/OffchainLabs/prysm/v7/proto/engine/v1"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	validatorpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1/validator-client"
 	ssz "github.com/prysmaticlabs/fastssz"
@@ -239,7 +238,7 @@ func (b *BeaconBlockBody) SetProposerSlashings([]*eth.ProposerSlashing) {
 	panic("implement me")
 }
 
-func (b *BeaconBlockBody) SetAttesterSlashings([]ethpb.AttesterSlashing) {
+func (b *BeaconBlockBody) SetAttesterSlashings([]eth.AttSlashing) error {
 	panic("implement me")
 }
 

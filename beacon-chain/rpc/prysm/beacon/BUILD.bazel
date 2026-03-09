@@ -32,7 +32,6 @@ go_library(
         "//encoding/ssz/query:go_default_library",
         "//monitoring/tracing/trace:go_default_library",
         "//network/httputil:go_default_library",
-        "//proto/eth/v1:go_default_library",
         "//proto/prysm/v1alpha1:go_default_library",
         "//proto/ssz_query:go_default_library",
         "//runtime/version:go_default_library",

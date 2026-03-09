@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/OffchainLabs/prysm/v7/api/server"
+	statefeed "github.com/OffchainLabs/prysm/v7/beacon-chain/core/feed/state"
 	fieldparams "github.com/OffchainLabs/prysm/v7/config/fieldparams"
 	"github.com/OffchainLabs/prysm/v7/config/params"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
@@ -14,7 +15,6 @@ import (
 	"github.com/OffchainLabs/prysm/v7/encoding/bytesutil"
 	"github.com/OffchainLabs/prysm/v7/math"
 	enginev1 "github.com/OffchainLabs/prysm/v7/proto/engine/v1"
-	ethv1 "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
 	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -1529,7 +1529,7 @@ func PendingConsolidationsFromConsensus(cs []*eth.PendingConsolidation) []*Pendi
 	return consolidations
 }
 
-func HeadEventFromV1(event *ethv1.EventHead) *HeadEvent {
+func HeadEventFromData(event *statefeed.HeadData) *HeadEvent {
 	return &HeadEvent{
 		Slot:                      fmt.Sprintf("%d", event.Slot),
 		Block:                     hexutil.Encode(event.Block),
@@ -1541,7 +1541,7 @@ func HeadEventFromV1(event *ethv1.EventHead) *HeadEvent {
 	}
 }
 
-func FinalizedCheckpointEventFromV1(event *ethv1.EventFinalizedCheckpoint) *FinalizedCheckpointEvent {
+func FinalizedCheckpointEventFromData(event *statefeed.FinalizedCheckpointData) *FinalizedCheckpointEvent {
 	return &FinalizedCheckpointEvent{
 		Block:               hexutil.Encode(event.Block),
 		State:               hexutil.Encode(event.State),
@@ -1550,7 +1550,7 @@ func FinalizedCheckpointEventFromV1(event *ethv1.EventFinalizedCheckpoint) *Fina
 	}
 }
 
-func EventChainReorgFromV1(event *ethv1.EventChainReorg) *ChainReorgEvent {
+func ChainReorgEventFromData(event *statefeed.ChainReorgData) *ChainReorgEvent {
 	return &ChainReorgEvent{
 		Slot:                fmt.Sprintf("%d", event.Slot),
 		Depth:               fmt.Sprintf("%d", event.Depth),
