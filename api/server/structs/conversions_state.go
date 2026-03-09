@@ -31,11 +31,7 @@ func BeaconStateFromConsensus(st beaconState.BeaconState) (*BeaconState, error) 
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -82,7 +78,7 @@ func BeaconStateFromConsensus(st beaconState.BeaconState) (*BeaconState, error) 
 		BlockRoots:                  br,
 		StateRoots:                  sr,
 		HistoricalRoots:             hr,
-		Eth1Data:                    Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                    st.Eth1Data(),
 		Eth1DataVotes:               votes,
 		Eth1DepositIndex:            fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                  vals,
@@ -118,11 +114,7 @@ func BeaconStateAltairFromConsensus(st beaconState.BeaconState) (*BeaconStateAlt
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -185,7 +177,7 @@ func BeaconStateAltairFromConsensus(st beaconState.BeaconState) (*BeaconStateAlt
 		BlockRoots:                  br,
 		StateRoots:                  sr,
 		HistoricalRoots:             hr,
-		Eth1Data:                    Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                    st.Eth1Data(),
 		Eth1DataVotes:               votes,
 		Eth1DepositIndex:            fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                  vals,
@@ -224,11 +216,7 @@ func BeaconStateBellatrixFromConsensus(st beaconState.BeaconState) (*BeaconState
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -303,7 +291,7 @@ func BeaconStateBellatrixFromConsensus(st beaconState.BeaconState) (*BeaconState
 		BlockRoots:                   br,
 		StateRoots:                   sr,
 		HistoricalRoots:              hr,
-		Eth1Data:                     Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                     st.Eth1Data(),
 		Eth1DataVotes:                votes,
 		Eth1DepositIndex:             fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                   vals,
@@ -343,11 +331,7 @@ func BeaconStateCapellaFromConsensus(st beaconState.BeaconState) (*BeaconStateCa
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -438,7 +422,7 @@ func BeaconStateCapellaFromConsensus(st beaconState.BeaconState) (*BeaconStateCa
 		BlockRoots:                   br,
 		StateRoots:                   sr,
 		HistoricalRoots:              hr,
-		Eth1Data:                     Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                     st.Eth1Data(),
 		Eth1DataVotes:                votes,
 		Eth1DepositIndex:             fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                   vals,
@@ -481,11 +465,7 @@ func BeaconStateDenebFromConsensus(st beaconState.BeaconState) (*BeaconStateDene
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -576,7 +556,7 @@ func BeaconStateDenebFromConsensus(st beaconState.BeaconState) (*BeaconStateDene
 		BlockRoots:                   br,
 		StateRoots:                   sr,
 		HistoricalRoots:              hr,
-		Eth1Data:                     Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                     st.Eth1Data(),
 		Eth1DataVotes:                votes,
 		Eth1DepositIndex:             fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                   vals,
@@ -619,11 +599,7 @@ func BeaconStateElectraFromConsensus(st beaconState.BeaconState) (*BeaconStateEl
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -750,7 +726,7 @@ func BeaconStateElectraFromConsensus(st beaconState.BeaconState) (*BeaconStateEl
 		BlockRoots:                    br,
 		StateRoots:                    sr,
 		HistoricalRoots:               hr,
-		Eth1Data:                      Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                      st.Eth1Data(),
 		Eth1DataVotes:                 votes,
 		Eth1DepositIndex:              fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                    vals,
@@ -802,11 +778,7 @@ func BeaconStateFuluFromConsensus(st beaconState.BeaconState) (*BeaconStateFulu,
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -940,7 +912,7 @@ func BeaconStateFuluFromConsensus(st beaconState.BeaconState) (*BeaconStateFulu,
 		BlockRoots:                    br,
 		StateRoots:                    sr,
 		HistoricalRoots:               hr,
-		Eth1Data:                      Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                      st.Eth1Data(),
 		Eth1DataVotes:                 votes,
 		Eth1DepositIndex:              fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                    vals,
@@ -993,11 +965,7 @@ func BeaconStateGloasFromConsensus(st beaconState.BeaconState) (*BeaconStateGloa
 	for i, r := range srcHr {
 		hr[i] = hexutil.Encode(r)
 	}
-	srcVotes := st.Eth1DataVotes()
-	votes := make([]*Eth1Data, len(srcVotes))
-	for i, e := range srcVotes {
-		votes[i] = Eth1DataFromConsensus(e)
-	}
+	votes := st.Eth1DataVotes()
 	srcVals := st.Validators()
 	vals := make([]*Validator, len(srcVals))
 	for i, v := range srcVals {
@@ -1153,7 +1121,7 @@ func BeaconStateGloasFromConsensus(st beaconState.BeaconState) (*BeaconStateGloa
 		BlockRoots:                    br,
 		StateRoots:                    sr,
 		HistoricalRoots:               hr,
-		Eth1Data:                      Eth1DataFromConsensus(st.Eth1Data()),
+		Eth1Data:                      st.Eth1Data(),
 		Eth1DataVotes:                 votes,
 		Eth1DepositIndex:              fmt.Sprintf("%d", st.Eth1DepositIndex()),
 		Validators:                    vals,

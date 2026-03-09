@@ -1,5 +1,7 @@
 package structs
 
+import eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+
 type BeaconState struct {
 	GenesisTime                 string                `json:"genesis_time"`
 	GenesisValidatorsRoot       string                `json:"genesis_validators_root"`
@@ -9,8 +11,8 @@ type BeaconState struct {
 	BlockRoots                  []string              `json:"block_roots"`
 	StateRoots                  []string              `json:"state_roots"`
 	HistoricalRoots             []string              `json:"historical_roots"`
-	Eth1Data                    *Eth1Data             `json:"eth1_data"`
-	Eth1DataVotes               []*Eth1Data           `json:"eth1_data_votes"`
+	Eth1Data                    *eth.Eth1Data         `json:"eth1_data"`
+	Eth1DataVotes               []*eth.Eth1Data       `json:"eth1_data_votes"`
 	Eth1DepositIndex            string                `json:"eth1_deposit_index"`
 	Validators                  []*Validator          `json:"validators"`
 	Balances                    []string              `json:"balances"`
@@ -33,8 +35,8 @@ type BeaconStateAltair struct {
 	BlockRoots                  []string           `json:"block_roots"`
 	StateRoots                  []string           `json:"state_roots"`
 	HistoricalRoots             []string           `json:"historical_roots"`
-	Eth1Data                    *Eth1Data          `json:"eth1_data"`
-	Eth1DataVotes               []*Eth1Data        `json:"eth1_data_votes"`
+	Eth1Data                    *eth.Eth1Data      `json:"eth1_data"`
+	Eth1DataVotes               []*eth.Eth1Data    `json:"eth1_data_votes"`
 	Eth1DepositIndex            string             `json:"eth1_deposit_index"`
 	Validators                  []*Validator       `json:"validators"`
 	Balances                    []string           `json:"balances"`
@@ -60,8 +62,8 @@ type BeaconStateBellatrix struct {
 	BlockRoots                   []string                `json:"block_roots"`
 	StateRoots                   []string                `json:"state_roots"`
 	HistoricalRoots              []string                `json:"historical_roots"`
-	Eth1Data                     *Eth1Data               `json:"eth1_data"`
-	Eth1DataVotes                []*Eth1Data             `json:"eth1_data_votes"`
+	Eth1Data                     *eth.Eth1Data           `json:"eth1_data"`
+	Eth1DataVotes                []*eth.Eth1Data         `json:"eth1_data_votes"`
 	Eth1DepositIndex             string                  `json:"eth1_deposit_index"`
 	Validators                   []*Validator            `json:"validators"`
 	Balances                     []string                `json:"balances"`
@@ -88,8 +90,8 @@ type BeaconStateCapella struct {
 	BlockRoots                   []string                       `json:"block_roots"`
 	StateRoots                   []string                       `json:"state_roots"`
 	HistoricalRoots              []string                       `json:"historical_roots"`
-	Eth1Data                     *Eth1Data                      `json:"eth1_data"`
-	Eth1DataVotes                []*Eth1Data                    `json:"eth1_data_votes"`
+	Eth1Data                     *eth.Eth1Data                  `json:"eth1_data"`
+	Eth1DataVotes                []*eth.Eth1Data                `json:"eth1_data_votes"`
 	Eth1DepositIndex             string                         `json:"eth1_deposit_index"`
 	Validators                   []*Validator                   `json:"validators"`
 	Balances                     []string                       `json:"balances"`
@@ -119,8 +121,8 @@ type BeaconStateDeneb struct {
 	BlockRoots                   []string                     `json:"block_roots"`
 	StateRoots                   []string                     `json:"state_roots"`
 	HistoricalRoots              []string                     `json:"historical_roots"`
-	Eth1Data                     *Eth1Data                    `json:"eth1_data"`
-	Eth1DataVotes                []*Eth1Data                  `json:"eth1_data_votes"`
+	Eth1Data                     *eth.Eth1Data                `json:"eth1_data"`
+	Eth1DataVotes                []*eth.Eth1Data              `json:"eth1_data_votes"`
 	Eth1DepositIndex             string                       `json:"eth1_deposit_index"`
 	Validators                   []*Validator                 `json:"validators"`
 	Balances                     []string                     `json:"balances"`
@@ -150,8 +152,8 @@ type BeaconStateElectra struct {
 	BlockRoots                    []string                     `json:"block_roots"`
 	StateRoots                    []string                     `json:"state_roots"`
 	HistoricalRoots               []string                     `json:"historical_roots"`
-	Eth1Data                      *Eth1Data                    `json:"eth1_data"`
-	Eth1DataVotes                 []*Eth1Data                  `json:"eth1_data_votes"`
+	Eth1Data                      *eth.Eth1Data                `json:"eth1_data"`
+	Eth1DataVotes                 []*eth.Eth1Data              `json:"eth1_data_votes"`
 	Eth1DepositIndex              string                       `json:"eth1_deposit_index"`
 	Validators                    []*Validator                 `json:"validators"`
 	Balances                      []string                     `json:"balances"`
@@ -190,8 +192,8 @@ type BeaconStateFulu struct {
 	BlockRoots                    []string                     `json:"block_roots"`
 	StateRoots                    []string                     `json:"state_roots"`
 	HistoricalRoots               []string                     `json:"historical_roots"`
-	Eth1Data                      *Eth1Data                    `json:"eth1_data"`
-	Eth1DataVotes                 []*Eth1Data                  `json:"eth1_data_votes"`
+	Eth1Data                      *eth.Eth1Data                `json:"eth1_data"`
+	Eth1DataVotes                 []*eth.Eth1Data              `json:"eth1_data_votes"`
 	Eth1DepositIndex              string                       `json:"eth1_deposit_index"`
 	Validators                    []*Validator                 `json:"validators"`
 	Balances                      []string                     `json:"balances"`
@@ -231,8 +233,8 @@ type BeaconStateGloas struct {
 	BlockRoots                    []string                    `json:"block_roots"`
 	StateRoots                    []string                    `json:"state_roots"`
 	HistoricalRoots               []string                    `json:"historical_roots"`
-	Eth1Data                      *Eth1Data                   `json:"eth1_data"`
-	Eth1DataVotes                 []*Eth1Data                 `json:"eth1_data_votes"`
+	Eth1Data                      *eth.Eth1Data               `json:"eth1_data"`
+	Eth1DataVotes                 []*eth.Eth1Data             `json:"eth1_data_votes"`
 	Eth1DepositIndex              string                      `json:"eth1_deposit_index"`
 	Validators                    []*Validator                `json:"validators"`
 	Balances                      []string                    `json:"balances"`

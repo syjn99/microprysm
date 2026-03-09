@@ -745,14 +745,6 @@ func (sc *SyncCommittee) ToConsensus() (*eth.SyncCommittee, error) {
 	}, nil
 }
 
-func Eth1DataFromConsensus(e1d *eth.Eth1Data) *Eth1Data {
-	return &Eth1Data{
-		DepositRoot:  hexutil.Encode(e1d.DepositRoot),
-		DepositCount: fmt.Sprintf("%d", e1d.DepositCount),
-		BlockHash:    hexutil.Encode(e1d.BlockHash),
-	}
-}
-
 func (s *ProposerSlashing) ToConsensus() (*eth.ProposerSlashing, error) {
 	if s.SignedHeader1 == nil {
 		return nil, server.NewDecodeError(errNilValue, "SignedHeader1")

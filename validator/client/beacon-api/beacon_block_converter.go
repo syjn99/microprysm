@@ -57,21 +57,6 @@ func (c beaconApiBeaconBlockConverter) ConvertRESTPhase0BlockToProto(block *stru
 		return nil, errors.New("eth1 data is nil")
 	}
 
-	depositRoot, err := hexutil.Decode(block.Body.Eth1Data.DepositRoot)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to decode deposit root `%s`", block.Body.Eth1Data.DepositRoot)
-	}
-
-	depositCount, err := strconv.ParseUint(block.Body.Eth1Data.DepositCount, 10, 64)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse deposit count `%s`", block.Body.Eth1Data.DepositCount)
-	}
-
-	blockHash, err := hexutil.Decode(block.Body.Eth1Data.BlockHash)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to decode block hash `%s`", block.Body.Eth1Data.BlockHash)
-	}
-
 	graffiti, err := hexutil.Decode(block.Body.Graffiti)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to decode graffiti `%s`", block.Body.Graffiti)
@@ -108,12 +93,8 @@ func (c beaconApiBeaconBlockConverter) ConvertRESTPhase0BlockToProto(block *stru
 		ParentRoot:    parentRoot,
 		StateRoot:     stateRoot,
 		Body: &ethpb.BeaconBlockBody{
-			RandaoReveal: randaoReveal,
-			Eth1Data: &ethpb.Eth1Data{
-				DepositRoot:  depositRoot,
-				DepositCount: depositCount,
-				BlockHash:    blockHash,
-			},
+			RandaoReveal:      randaoReveal,
+			Eth1Data:          block.Body.Eth1Data,
 			Graffiti:          graffiti,
 			ProposerSlashings: proposerSlashings,
 			AttesterSlashings: attesterSlashings,

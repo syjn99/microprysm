@@ -187,12 +187,6 @@ type SyncDetailsContainer struct {
 	Data *SyncDetails `json:"data"`
 }
 
-type Eth1Data struct {
-	DepositRoot  string `json:"deposit_root"`
-	DepositCount string `json:"deposit_count"`
-	BlockHash    string `json:"block_hash"`
-}
-
 type ProposerSlashing struct {
 	SignedHeader1 *SignedBeaconBlockHeader `json:"signed_header_1"`
 	SignedHeader2 *SignedBeaconBlockHeader `json:"signed_header_2"`

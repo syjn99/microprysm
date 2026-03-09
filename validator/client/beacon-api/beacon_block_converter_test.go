@@ -87,33 +87,6 @@ func TestGetBeaconBlockConverter_Phase0Error(t *testing.T) {
 			},
 		},
 		{
-			name:                 "bad deposit root",
-			expectedErrorMessage: "failed to decode deposit root `bar`",
-			generateData: func() *structs.BeaconBlock {
-				beaconBlock := testhelpers.GenerateJsonPhase0BeaconBlock()
-				beaconBlock.Body.Eth1Data.DepositRoot = "bar"
-				return beaconBlock
-			},
-		},
-		{
-			name:                 "bad deposit count",
-			expectedErrorMessage: "failed to parse deposit count `foo`",
-			generateData: func() *structs.BeaconBlock {
-				beaconBlock := testhelpers.GenerateJsonPhase0BeaconBlock()
-				beaconBlock.Body.Eth1Data.DepositCount = "foo"
-				return beaconBlock
-			},
-		},
-		{
-			name:                 "bad block hash",
-			expectedErrorMessage: "failed to decode block hash `bar`",
-			generateData: func() *structs.BeaconBlock {
-				beaconBlock := testhelpers.GenerateJsonPhase0BeaconBlock()
-				beaconBlock.Body.Eth1Data.BlockHash = "bar"
-				return beaconBlock
-			},
-		},
-		{
 			name:                 "bad graffiti",
 			expectedErrorMessage: "failed to decode graffiti `foo`",
 			generateData: func() *structs.BeaconBlock {

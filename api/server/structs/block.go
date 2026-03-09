@@ -1,6 +1,10 @@
 package structs
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	eth "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+)
 
 // MessageJsoner describes a signed consensus type wrapper that can return the `.Message` field in a json envelope
 // encoded as a []byte, for use as a json.RawMessage value when encoding the outer envelope.
@@ -43,7 +47,7 @@ type BeaconBlock struct {
 
 type BeaconBlockBody struct {
 	RandaoReveal      string                 `json:"randao_reveal"`
-	Eth1Data          *Eth1Data              `json:"eth1_data"`
+	Eth1Data          *eth.Eth1Data          `json:"eth1_data"`
 	Graffiti          string                 `json:"graffiti"`
 	ProposerSlashings []*ProposerSlashing    `json:"proposer_slashings"`
 	AttesterSlashings []*AttesterSlashing    `json:"attester_slashings"`
@@ -100,7 +104,7 @@ type BeaconBlockAltair struct {
 
 type BeaconBlockBodyAltair struct {
 	RandaoReveal      string                 `json:"randao_reveal"`
-	Eth1Data          *Eth1Data              `json:"eth1_data"`
+	Eth1Data          *eth.Eth1Data          `json:"eth1_data"`
 	Graffiti          string                 `json:"graffiti"`
 	ProposerSlashings []*ProposerSlashing    `json:"proposer_slashings"`
 	AttesterSlashings []*AttesterSlashing    `json:"attester_slashings"`
@@ -139,7 +143,7 @@ type BeaconBlockBellatrix struct {
 
 type BeaconBlockBodyBellatrix struct {
 	RandaoReveal      string                 `json:"randao_reveal"`
-	Eth1Data          *Eth1Data              `json:"eth1_data"`
+	Eth1Data          *eth.Eth1Data          `json:"eth1_data"`
 	Graffiti          string                 `json:"graffiti"`
 	ProposerSlashings []*ProposerSlashing    `json:"proposer_slashings"`
 	AttesterSlashings []*AttesterSlashing    `json:"attester_slashings"`
@@ -175,7 +179,7 @@ type BlindedBeaconBlockBellatrix struct {
 
 type BlindedBeaconBlockBodyBellatrix struct {
 	RandaoReveal           string                  `json:"randao_reveal"`
-	Eth1Data               *Eth1Data               `json:"eth1_data"`
+	Eth1Data               *eth.Eth1Data           `json:"eth1_data"`
 	Graffiti               string                  `json:"graffiti"`
 	ProposerSlashings      []*ProposerSlashing     `json:"proposer_slashings"`
 	AttesterSlashings      []*AttesterSlashing     `json:"attester_slashings"`
@@ -215,7 +219,7 @@ type BeaconBlockCapella struct {
 
 type BeaconBlockBodyCapella struct {
 	RandaoReveal          string                        `json:"randao_reveal"`
-	Eth1Data              *Eth1Data                     `json:"eth1_data"`
+	Eth1Data              *eth.Eth1Data                 `json:"eth1_data"`
 	Graffiti              string                        `json:"graffiti"`
 	ProposerSlashings     []*ProposerSlashing           `json:"proposer_slashings"`
 	AttesterSlashings     []*AttesterSlashing           `json:"attester_slashings"`
@@ -252,7 +256,7 @@ type BlindedBeaconBlockCapella struct {
 
 type BlindedBeaconBlockBodyCapella struct {
 	RandaoReveal           string                         `json:"randao_reveal"`
-	Eth1Data               *Eth1Data                      `json:"eth1_data"`
+	Eth1Data               *eth.Eth1Data                  `json:"eth1_data"`
 	Graffiti               string                         `json:"graffiti"`
 	ProposerSlashings      []*ProposerSlashing            `json:"proposer_slashings"`
 	AttesterSlashings      []*AttesterSlashing            `json:"attester_slashings"`
@@ -305,7 +309,7 @@ type BeaconBlockDeneb struct {
 
 type BeaconBlockBodyDeneb struct {
 	RandaoReveal          string                        `json:"randao_reveal"`
-	Eth1Data              *Eth1Data                     `json:"eth1_data"`
+	Eth1Data              *eth.Eth1Data                 `json:"eth1_data"`
 	Graffiti              string                        `json:"graffiti"`
 	ProposerSlashings     []*ProposerSlashing           `json:"proposer_slashings"`
 	AttesterSlashings     []*AttesterSlashing           `json:"attester_slashings"`
@@ -343,7 +347,7 @@ func (s *SignedBlindedBeaconBlockDeneb) SigString() string {
 
 type BlindedBeaconBlockBodyDeneb struct {
 	RandaoReveal           string                        `json:"randao_reveal"`
-	Eth1Data               *Eth1Data                     `json:"eth1_data"`
+	Eth1Data               *eth.Eth1Data                 `json:"eth1_data"`
 	Graffiti               string                        `json:"graffiti"`
 	ProposerSlashings      []*ProposerSlashing           `json:"proposer_slashings"`
 	AttesterSlashings      []*AttesterSlashing           `json:"attester_slashings"`
@@ -397,7 +401,7 @@ type BeaconBlockElectra struct {
 
 type BeaconBlockBodyElectra struct {
 	RandaoReveal          string                        `json:"randao_reveal"`
-	Eth1Data              *Eth1Data                     `json:"eth1_data"`
+	Eth1Data              *eth.Eth1Data                 `json:"eth1_data"`
 	Graffiti              string                        `json:"graffiti"`
 	ProposerSlashings     []*ProposerSlashing           `json:"proposer_slashings"`
 	AttesterSlashings     []*AttesterSlashingElectra    `json:"attester_slashings"`
@@ -436,7 +440,7 @@ func (s *SignedBlindedBeaconBlockElectra) SigString() string {
 
 type BlindedBeaconBlockBodyElectra struct {
 	RandaoReveal           string                        `json:"randao_reveal"`
-	Eth1Data               *Eth1Data                     `json:"eth1_data"`
+	Eth1Data               *eth.Eth1Data                 `json:"eth1_data"`
 	Graffiti               string                        `json:"graffiti"`
 	ProposerSlashings      []*ProposerSlashing           `json:"proposer_slashings"`
 	AttesterSlashings      []*AttesterSlashingElectra    `json:"attester_slashings"`
@@ -542,7 +546,7 @@ type PayloadAttestation struct {
 
 type BeaconBlockBodyGloas struct {
 	RandaoReveal              string                        `json:"randao_reveal"`
-	Eth1Data                  *Eth1Data                     `json:"eth1_data"`
+	Eth1Data                  *eth.Eth1Data                 `json:"eth1_data"`
 	Graffiti                  string                        `json:"graffiti"`
 	ProposerSlashings         []*ProposerSlashing           `json:"proposer_slashings"`
 	AttesterSlashings         []*AttesterSlashingElectra    `json:"attester_slashings"`
