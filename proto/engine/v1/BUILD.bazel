@@ -57,7 +57,7 @@ ssz_gen_marshal(
 go_proto_library(
     name = "go_proto",
     compilers = [
-        "@com_github_prysmaticlabs_protoc_gen_go_cast//:go_cast_grpc",
+        "@com_github_prysmaticlabs_protoc_gen_go_cast//:go_cast",
     ],
     importpath = "github.com/OffchainLabs/prysm/v7/proto/engine/v1",
     proto = ":proto",
