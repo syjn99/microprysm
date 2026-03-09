@@ -3,11 +3,9 @@ package helpers
 import (
 	"testing"
 
-	state_native "github.com/OffchainLabs/prysm/v7/beacon-chain/state/state-native"
-	"github.com/OffchainLabs/prysm/v7/config/params"
-	"github.com/OffchainLabs/prysm/v7/consensus-types/primitives"
 	"github.com/OffchainLabs/prysm/v7/consensus-types/validator"
-	ethpbalpha "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
+	"github.com/OffchainLabs/prysm/v7/testing/assert"
+)
 
 // This test verifies how many validator statuses have meaningful values.
 // The first expected non-meaningful value will have x.String() equal to its numeric representation.
