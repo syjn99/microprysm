@@ -10,7 +10,7 @@ import (
 	"github.com/OffchainLabs/prysm/v7/beacon-chain/p2p/peers/scorers"
 	mockp2p "github.com/OffchainLabs/prysm/v7/beacon-chain/p2p/testing"
 	leakybucket "github.com/OffchainLabs/prysm/v7/container/leaky-bucket"
-	ethpb "github.com/OffchainLabs/prysm/v7/proto/eth/v1"
+	ethpb "github.com/OffchainLabs/prysm/v7/proto/prysm/v1alpha1"
 	"github.com/OffchainLabs/prysm/v7/testing/assert"
 	"github.com/OffchainLabs/prysm/v7/testing/require"
 	"github.com/libp2p/go-libp2p"
