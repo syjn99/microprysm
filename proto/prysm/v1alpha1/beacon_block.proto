@@ -133,7 +133,7 @@ message GenericBeaconBlock {
 // The signed version of beacon block.
 message SignedBeaconBlock {
   // The unsigned beacon block itself.
-  BeaconBlock block = 1;
+  BeaconBlock block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -253,7 +253,7 @@ message BuilderBid {
 // The signed version of a (HF1) beacon block.
 message SignedBeaconBlockAltair {
   // The unsigned beacon block itself.
-  BeaconBlockAltair block = 1;
+  BeaconBlockAltair block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -328,7 +328,7 @@ message BeaconBlockBodyAltair {
 
 message SignedBeaconBlockBellatrix {
   // The unsigned beacon block itself.
-  BeaconBlockBellatrix block = 1;
+  BeaconBlockBellatrix block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -399,7 +399,7 @@ message BeaconBlockBodyBellatrix {
 
 message SignedBlindedBeaconBlockBellatrix {
   // The unsigned blinded beacon block itself.
-  BlindedBeaconBlockBellatrix block = 1;
+  BlindedBeaconBlockBellatrix block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this blinded block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -470,7 +470,7 @@ message BlindedBeaconBlockBodyBellatrix {
 
 message SignedBeaconBlockCapella {
   // The unsigned beacon block itself.
-  BeaconBlockCapella block = 1;
+  BeaconBlockCapella block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -544,7 +544,7 @@ message BeaconBlockBodyCapella {
 
 message SignedBlindedBeaconBlockCapella {
   // The unsigned blinded beacon block itself.
-  BlindedBeaconBlockCapella block = 1;
+  BlindedBeaconBlockCapella block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this blinded block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -629,7 +629,7 @@ message BuilderBidCapella {
 // ----------------------------------------------------------------------------
 
 message SignedBeaconBlockContentsDeneb {
-  SignedBeaconBlockDeneb block = 1;
+  SignedBeaconBlockDeneb block = 1 [(ethereum.eth.ext.spec_name) = "signed_block"];
   repeated bytes kzg_proofs = 2 [
     (ethereum.eth.ext.ssz_size) = "?,48",
     (ethereum.eth.ext.ssz_max) = "4096"
@@ -642,7 +642,7 @@ message SignedBeaconBlockContentsDeneb {
 
 message SignedBeaconBlockDeneb {
   // The unsigned beacon block itself.
-  BeaconBlockDeneb block = 1;
+  BeaconBlockDeneb block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -859,7 +859,7 @@ message BlobSidecar {
 // ----------------------------------------------------------------------------
 
 message SignedBeaconBlockContentsElectra {
-  SignedBeaconBlockElectra block = 1;
+  SignedBeaconBlockElectra block = 1 [(ethereum.eth.ext.spec_name) = "signed_block"];
   repeated bytes kzg_proofs = 2 [
     (ethereum.eth.ext.ssz_size) = "?,48",
     (ethereum.eth.ext.ssz_max) = "4096"
@@ -872,7 +872,7 @@ message SignedBeaconBlockContentsElectra {
 
 message SignedBeaconBlockElectra {
   // The unsigned beacon block itself.
-  BeaconBlockElectra block = 1;
+  BeaconBlockElectra block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -1052,7 +1052,7 @@ message BlindedBeaconBlockBodyElectra {
 // ----------------------------------------------------------------------------
 
 message SignedBeaconBlockContentsFulu {
-  SignedBeaconBlockFulu block = 1;
+  SignedBeaconBlockFulu block = 1 [(ethereum.eth.ext.spec_name) = "signed_block"];
   repeated bytes kzg_proofs = 2 [
     (ethereum.eth.ext.ssz_size) = "?,48",
     (ethereum.eth.ext.ssz_max) = "max_cell_proofs_length.size"
@@ -1065,7 +1065,7 @@ message SignedBeaconBlockContentsFulu {
 
 message SignedBeaconBlockFulu {
   // The unsigned beacon block itself.
-  BeaconBlockElectra block = 1;
+  BeaconBlockElectra block = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
