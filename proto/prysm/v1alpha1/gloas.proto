@@ -189,7 +189,7 @@ message BeaconBlockBodyGloas {
 // Spec:
 // Standard SignedBeaconBlock structure with BeaconBlockGloas
 message SignedBeaconBlockGloas {
-  BeaconBlockGloas block = 1;
+  BeaconBlockGloas block = 1 [(ethereum.eth.ext.spec_name) = "message"];
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
 }
 

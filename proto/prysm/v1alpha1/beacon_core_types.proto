@@ -45,7 +45,7 @@ message BeaconBlockHeader {
 // The signed version of beacon block header.
 message SignedBeaconBlockHeader {
   // The unsigned beacon block header itself.
-  BeaconBlockHeader header = 1;
+  BeaconBlockHeader header = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // 96 byte BLS signature from the validator that produced this block header.
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
@@ -70,10 +70,10 @@ message Eth1Data {
 // proposing two conflicting blocks from the same validator.
 message ProposerSlashing {
   // First conflicting signed block header.
-  SignedBeaconBlockHeader header_1 = 2;
+  SignedBeaconBlockHeader header_1 = 2 [(ethereum.eth.ext.spec_name) = "signed_header_1"];
 
   // Second conflicting signed block header.
-  SignedBeaconBlockHeader header_2 = 3;
+  SignedBeaconBlockHeader header_2 = 3 [(ethereum.eth.ext.spec_name) = "signed_header_2"];
 }
 
 // Deposit into the Ethereum consensus from the Ethereum 1.x deposit contract.
@@ -104,7 +104,7 @@ message Deposit {
 // The signed version of voluntary exit.
 message SignedVoluntaryExit {
   // The unsigned voluntary exit itself.
-  VoluntaryExit exit = 1;
+  VoluntaryExit exit = 1 [(ethereum.eth.ext.spec_name) = "message"];
 
   // Validator's 96 byte signature
   bytes signature = 2 [ (ethereum.eth.ext.ssz_size) = "96" ];
