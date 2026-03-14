@@ -22,7 +22,7 @@ The migration is complete when:
 |---|----------|-------------|
 | 1 | `prysm-jsongen` generates correct JSON for all proto types | Diff test vs current `structs.XxxFromConsensus()` output |
 | 2 | All REST API endpoints return identical JSON | API response comparison test |
-| 3 | `api/server/structs/conversions*.go` deleted (~8,500 lines) | `find . -name 'conversions*.go' -path '*/structs/*'` returns empty |
+| 3 | `api/server/structs/conversions*.go` deleted (~10,900 lines) | `find . -name 'conversions*.go' -path '*/structs/*'` returns empty |
 | 4 | No `FromConsensus`/`ToConsensus` calls remain | `grep -r 'FromConsensus\|ToConsensus' --include='*.go'` returns empty |
 | 5 | All unit tests pass | `bazel test //...` |
 | 6 | E2E tests pass | CI green |
@@ -57,9 +57,9 @@ The migration is complete when:
 | Metric | Before | After | Delta |
 |--------|--------|-------|-------|
 | Proto definitions (`.proto`) | ~8,000 lines | 0 | **-8,000** |
-| Generated Go (`.pb.go`) | ~95,000 lines | 0 | **-95,000** |
-| API structs + conversions | ~10,800 lines | ~2,300 (types only, no conversions) | **-8,500** |
-| Total code | — | — | **~-111,500 lines** |
+| Generated Go (`.pb.go` + `.ssz.go`) | ~71,300 lines | 0 | **-71,300** |
+| API structs + conversions | ~10,900 lines | ~2,300 (types only, no conversions) | **-8,600** |
+| Total code | — | — | **~-98,600 lines** |
 | Type definitions | 3 layers | 1 layer | **-2 layers** |
 | Conversion functions | ~670 | 0 | **-670 functions** |
 | External deps | protobuf + grpc | — | **-protobuf** |

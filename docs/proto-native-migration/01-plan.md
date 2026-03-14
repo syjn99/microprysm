@@ -5,7 +5,7 @@
 The migration proceeds in three sequential phases. Each phase is independently valuable and leaves the codebase in a working state.
 
 ```
-Phase 1: jsongen on .pb.go         → Delete api/server/structs/ (~8,500 lines)
+Phase 1: jsongen on .pb.go         → Delete api/server/structs/ (~10,900 lines)
 Phase 2: Native Go structs         → Replace ethpb.* with native types
 Phase 3: Delete .proto + .pb.go    → Remove protobuf entirely (~103,000+ lines: proto definitions + generated Go)
 ```
@@ -61,7 +61,7 @@ Phase 3: Delete .proto + .pb.go    → Remove protobuf entirely (~103,000+ lines
 - Keep structs still needed for request parsing (if any)
 - Run `grep -r "structs\." --include="*.go"` to verify zero remaining references
 - **Risk:** Low — all callers already migrated
-- **Success criteria:** `api/server/structs/conversions*.go` deleted, ~8,500 lines removed
+- **Success criteria:** `api/server/structs/conversions*.go` deleted, ~10,900 lines removed
 
 ### Phase 1 Gate
 - [ ] All REST API endpoints return spec-compliant JSON
@@ -69,7 +69,7 @@ Phase 3: Delete .proto + .pb.go    → Remove protobuf entirely (~103,000+ lines
 - [ ] E2E tests pass
 - [ ] `api/server/structs/conversions*.go` deleted
 - [ ] No `FromConsensus`/`ToConsensus` calls remain
-- [ ] **Estimated removal: ~8,500 lines**
+- [ ] **Estimated removal: ~10,900 lines**
 
 ---
 
@@ -214,10 +214,10 @@ bazel run //:gazelle -- update-repos -from_file=go.mod -to_macro=deps.bzl%prysm_
 
 | Phase | PRs (est.) | Risk | Lines Removed | Description |
 |-------|-----------|------|---------------|-------------|
-| 1 | ~7 | Low-Medium | ~8,500 | jsongen on .pb.go, delete structs/ conversions |
+| 1 | ~7 | Low-Medium | ~10,900 | jsongen on .pb.go, delete structs/ conversions |
 | 2 | ~30 | Medium-High | — (replacement) | Native Go structs replace proto types |
 | 3 | ~4 | Low | ~103,000+ | Delete .proto + .pb.go (proto definitions + generated Go) |
-| **Total** | **~41** | | **~111,500+** | |
+| **Total** | **~41** | | **~98,600** | |
 
 ## Critical Path
 
