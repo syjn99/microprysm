@@ -21,8 +21,8 @@ Phase 3: Delete .proto + .pb.go    → Remove protobuf entirely (~103,000+ lines
 ### PR 1.1: Add jsongen to proto build pipeline
 **Scope:** Integrate `prysm-jsongen` into the build
 - Add `prysm-jsongen` as a tool dependency
-- Create `go generate` directives or Bazel rules to run jsongen on `.pb.go` files
-- Generate `*_json.go` files alongside existing `.pb.go`
+- Create Bazel rules to run jsongen on `.pb.go` files (per DEPENDENCIES.md: use Bazel for production builds)
+- Generate `*.json.go` files alongside existing `.pb.go`
 - Verify generated JSON matches existing `structs.XxxFromConsensus()` output
 - **Risk:** Low — additive only, no existing code changed
 - **Success criteria:** `prysm-jsongen` runs cleanly on all proto types, output matches spec
@@ -89,9 +89,9 @@ type Checkpoint struct {
     Root  [32]byte             `ssz-size:"32"`
 }
 ```
-- Run `sszgen` → `*_encoding.go`
-- Run `prysm-jsongen` → `*_json.go` (hex encoding for Root)
-- Update all `ethpb.Checkpoint` → `primitives.Checkpoint` references
+- Keep existing `*.ssz.go` generation via Bazel SSZ rules
+- Run `prysm-jsongen` → `*.json.go` (hex encoding for Root)
+- Update all `ethpb.Checkpoint` → native `Checkpoint` references (note: Checkpoint is NOT a primitive type)
 - Update BUILD.bazel deps
 - **Risk:** Medium — first type migration sets the pattern. 9+9+1 = 19 parent references.
 - **Success criteria:** SSZ encoding bit-identical to proto; all tests pass
@@ -241,15 +241,6 @@ Phase 1 is independent and can start immediately.
 Phase 2 waves are strictly ordered by dependency.
 Phase 3 can only start after Phase 2 is 100% complete.
 
-## Open Questions
-
-1. **Package placement:** ~~Put native types in `consensus-types/primitives/`?~~ → **Resolved: `consensus-types/`** (see Decisions below)
-2. **PR granularity:** 1 type per PR for Wave 1? Batch small types?
-3. **Mixed types during migration:** When a parent type is still proto but a child is native, how to handle? Temporary conversion helpers?
-4. **engine/v1 proto:** Keep `proto/engine/v1/` (execution layer types) as proto, or migrate too?
-5. **State interface:** `state.BeaconState` interface wraps proto — how does native struct migration interact with the state package?
-
----
 
 ## Decisions (Resolved)
 
